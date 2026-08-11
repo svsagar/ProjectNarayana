@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date, datetime, time
 from typing import Optional
 
 
@@ -17,6 +17,8 @@ class BirthInput:
     latitude: float
     longitude: float
     place_name: Optional[str] = None
+    coordinate_source: Optional[str] = None
+    coordinate_precision: Optional[str] = None
 
 
 @dataclass(frozen=True)
@@ -41,10 +43,30 @@ class CelestialPosition:
 
 
 @dataclass(frozen=True)
+class CalculationMetadata:
+    """Metadata required to reproduce and audit a calculation."""
+
+    local_datetime: datetime
+    timezone_name: str
+    utc_datetime: datetime
+    latitude: float
+    longitude: float
+    coordinate_source: Optional[str]
+    coordinate_precision: Optional[str]
+    julian_day_ut: float
+    ephemeris_implementation: str
+    ephemeris_version: str
+    ayanamsa: Optional[str]
+    node_mode: Optional[str]
+    time_scale: str = "UT"
+    calculation_mode: str = "geocentric"
+
+
+@dataclass(frozen=True)
 class AstronomyResult:
     """Canonical result produced by the Astronomy Engine."""
 
     birth_input: BirthInput
     calculation_config: CalculationConfig
-    julian_day_ut: float
+    calculation_metadata: CalculationMetadata
     positions: tuple[CelestialPosition, ...]

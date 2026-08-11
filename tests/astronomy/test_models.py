@@ -1,11 +1,12 @@
 ﻿"""Tests for the Astronomy Engine core models."""
 
-from datetime import date, time
+from datetime import date, datetime, time, timezone
 
 from src.narayana.astronomy.models import (
     AstronomyResult,
     BirthInput,
     CalculationConfig,
+    CalculationMetadata,
     CelestialPosition,
 )
 
@@ -69,6 +70,35 @@ def test_astronomy_result():
         node="mean",
     )
 
+    metadata = CalculationMetadata(
+        local_datetime=datetime(
+            1978,
+            8,
+            17,
+            10,
+            10,
+            tzinfo=timezone.utc,
+        ),
+        timezone_name="Asia/Kolkata",
+        utc_datetime=datetime(
+            1978,
+            8,
+            17,
+            4,
+            40,
+            tzinfo=timezone.utc,
+        ),
+        latitude=9.5916,
+        longitude=76.5222,
+        coordinate_source=None,
+        coordinate_precision=None,
+        julian_day_ut=2443742.6875,
+        ephemeris_implementation="swiss_ephemeris",
+        ephemeris_version="2.10.03",
+        ayanamsa="lahiri",
+        node_mode="mean",
+    )
+
     position = CelestialPosition(
         body="Sun",
         longitude=120.5,
@@ -80,10 +110,23 @@ def test_astronomy_result():
     result = AstronomyResult(
         birth_input=birth,
         calculation_config=config,
-        julian_day_ut=2443742.6875,
+        calculation_metadata=metadata,
         positions=(position,),
     )
 
-    assert result.julian_day_ut == 2443742.6875
+    assert result.calculation_metadata.julian_day_ut == 2443742.6875
+    assert result.calculation_metadata.timezone_name == "Asia/Kolkata"
+    assert result.calculation_metadata.utc_datetime == datetime(
+        1978,
+        8,
+        17,
+        4,
+        40,
+        tzinfo=timezone.utc,
+    )
+    assert result.calculation_metadata.ephemeris_implementation == "swiss_ephemeris"
+    assert result.calculation_metadata.ephemeris_version == "2.10.03"
+    assert result.calculation_metadata.ayanamsa == "lahiri"
+    assert result.calculation_metadata.node_mode == "mean"
     assert len(result.positions) == 1
     assert result.positions[0].body == "Sun"
