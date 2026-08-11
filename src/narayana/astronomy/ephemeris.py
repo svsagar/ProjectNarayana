@@ -9,7 +9,7 @@ import swisseph as swe
 
 @dataclass(frozen=True)
 class EphemerisPosition:
-    """Raw canonical position returned by Swiss Ephemeris."""
+    """Canonical position returned by Swiss Ephemeris."""
 
     body: str
     longitude: float
@@ -21,6 +21,17 @@ class EphemerisPosition:
 class SwissEphemerisBackend:
     """Astronomical backend boundary around Swiss Ephemeris."""
 
+    _BODY_MAP = {
+        "Sun": swe.SUN,
+        "Moon": swe.MOON,
+        "Mean Node": swe.MEAN_NODE,
+        "True Node": swe.TRUE_NODE,
+    }
+
+    _AYANAMSA_MAP = {
+        "lahiri": swe.SIDM_LAHIRI,
+    }
+
     def __init__(self) -> None:
         self.version = swe.version
 
@@ -28,23 +39,40 @@ class SwissEphemerisBackend:
         self,
         julian_day_ut: float,
         body: str,
+        *,
+        zodiac: str = "tropical",
+        ayanamsa: str | None = None,
     ) -> EphemerisPosition:
-        """Calculate one celestial body's position for a Julian Day."""
+        """Calculate one celestial body's position for a Julian Day.
 
-        body_map = {
-            "Sun": swe.SUN,
-            "Moon": swe.MOON,
-            "Mean Node": swe.MEAN_NODE,
-            "True Node": swe.TRUE_NODE,
-        }
+        Tropical calculations do not require an ayanamsa.
+        Sidereal calculations require an explicit ayanamsa.
+        """
 
-        if body not in body_map:
+        if body not in self._BODY_MAP:
             raise ValueError(f"Unsupported celestial body: {body}")
+
+        if zodiac not in {"tropical", "sidereal"}:
+            raise ValueError(f"Unsupported zodiac: {zodiac}")
+
+        if zodiac == "sidereal":
+            if ayanamsa is None:
+                raise ValueError(
+                    "ayanamsa must be specified for sidereal calculations"
+                )
+
+            if ayanamsa not in self._AYANAMSA_MAP:
+                raise ValueError(f"Unsupported ayanamsa: {ayanamsa}")
+
+            swe.set_sid_mode(self._AYANAMSA_MAP[ayanamsa])
+            flags = swe.FLG_SWIEPH | swe.FLG_SPEED | swe.FLG_SIDEREAL
+        else:
+            flags = swe.FLG_SWIEPH | swe.FLG_SPEED
 
         result, _flags = swe.calc_ut(
             julian_day_ut,
-            body_map[body],
-            swe.FLG_SWIEPH | swe.FLG_SPEED,
+            self._BODY_MAP[body],
+            flags,
         )
 
         return EphemerisPosition(
