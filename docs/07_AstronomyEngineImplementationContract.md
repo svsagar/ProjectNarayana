@@ -1,4 +1,4 @@
-# Project Narayana ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Astronomy Engine Implementation Contract
+# Project Narayana — Astronomy Engine Implementation Contract
 
 **Version:** 1.0
 **Status:** Draft
@@ -18,9 +18,9 @@ The implementation must remain consistent with:
 
 and the approved architectural decisions:
 
-- D-012 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Configurable Ayanamsa
-- D-013 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Lunar Node Calculation
-- D-014 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â House Calculation Boundary
+- D-012 — Configurable Ayanamsa
+- D-013 — Lunar Node Calculation
+- D-014 — House Calculation Boundary
 
 ---
 
@@ -124,6 +124,20 @@ The implementation must not silently assume that a current time-zone rule applie
 The resolved time-zone information must be retained as calculation metadata.
 
 ---
+
+### 5.1 Julian Day Requirements
+
+The implementation shall explicitly document:
+
+- The input time scale.
+- The local-time to UTC conversion procedure.
+- The UTC to Julian Day conversion procedure.
+- The resulting Julian Day value used for the calculation.
+- The numerical precision retained for the Julian Day value.
+
+The Julian Day value used by the ephemeris calculation must be retained in the calculation metadata.
+
+The implementation must not silently change time scales or apply undocumented time conversions.
 
 ## 6. Geographic Location Contract
 
@@ -299,25 +313,43 @@ No presentation style may require a second astronomical calculation for the same
 
 Validation shall occur at multiple levels.
 
-### Level 1 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Mathematical Consistency
+### Level 1 — Mathematical Consistency
 
 Internal time conversions, Julian Day conversion, coordinate handling, and calculation transformations shall be verified for consistency.
 
-### Level 2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Swiss Ephemeris Reference
+### Level 2 — Swiss Ephemeris Reference
 
 Results shall be compared against independently generated Swiss Ephemeris results using the same input and calculation configuration.
 
-### Level 3 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Independent Reference
+### Level 3 — Independent Reference
 
 Selected results shall be compared against a trusted independent astronomical or Jyotish calculation source.
 
-### Level 4 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Regression Tests
+### Level 4 — Regression Tests
 
 Once a result has been independently verified, the case shall become a permanent automated regression test.
 
 The implementation must distinguish validation failures from ordinary calculation results.
 
 ---
+
+### 13.1 First Validation Case
+
+The first implementation validation shall use the project-defined reference case:
+
+- Date: 17 August 1978
+- Time: 10:10 AM
+- Place: Kottayam, Kerala, India
+
+Before treating the case as a valid astronomical reference, the implementation shall independently establish:
+
+- The geographic coordinates used for Kottayam.
+- The historical time-zone interpretation applicable to the stated date and location.
+- The corresponding UTC instant.
+- The resulting Julian Day.
+- The calculation configuration used for the reference result.
+
+The reference case shall be recorded as a reproducible validation fixture and shall not be embedded as an application-specific calculation constant.
 
 ## 14. Error Contract
 
@@ -365,6 +397,16 @@ Internal calculations must retain sufficient numerical precision.
 Display rounding must never become an input to subsequent calculations.
 
 ---
+
+### 15.1 Numerical Precision Requirements
+
+The implementation shall retain sufficient numerical precision throughout astronomical calculations to support reproducibility and independent validation.
+
+Internal calculation values must not be rounded merely for display purposes.
+
+Where numerical values are serialized or stored as canonical results, the representation must preserve sufficient precision to reproduce or independently verify the calculation.
+
+Display rounding shall occur only at the presentation boundary and shall never be fed back into subsequent astronomical calculations.
 
 ## 16. Implementation Constraints
 
@@ -437,8 +479,8 @@ The implementation contract is considered satisfied only when the following are 
 This implementation contract remains **Draft** until it has been reviewed against:
 
 - `docs/06_AstronomyEngineSpecification.md`
-- D-012 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Configurable Ayanamsa
-- D-013 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Lunar Node Calculation
-- D-014 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â House Calculation Boundary
+- D-012 — Configurable Ayanamsa
+- D-013 — Lunar Node Calculation
+- D-014 — House Calculation Boundary
 
 After technical review, the contract may be marked **Approved** and implementation may begin.
