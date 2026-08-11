@@ -21,11 +21,11 @@ class BirthInput:
 
 @dataclass(frozen=True)
 class CalculationConfig:
-    """Configuration controlling an astronomy calculation."""
+    """Explicit configuration controlling an astronomy calculation."""
 
-    zodiac: str = "sidereal"
-    ayanamsa: str = "lahiri"
-    node: str = "mean"
+    zodiac: str
+    ayanamsa: Optional[str]
+    node: Optional[str]
     ephemeris: str = "swiss_ephemeris"
 
 

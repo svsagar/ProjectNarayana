@@ -28,8 +28,12 @@ def test_birth_input():
     assert birth.place_name == "Kottayam"
 
 
-def test_calculation_config_defaults():
-    config = CalculationConfig()
+def test_calculation_config():
+    config = CalculationConfig(
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+        node="mean",
+    )
 
     assert config.zodiac == "sidereal"
     assert config.ayanamsa == "lahiri"
@@ -59,7 +63,11 @@ def test_astronomy_result():
         longitude=76.5222,
     )
 
-    config = CalculationConfig()
+    config = CalculationConfig(
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+        node="mean",
+    )
 
     position = CelestialPosition(
         body="Sun",
