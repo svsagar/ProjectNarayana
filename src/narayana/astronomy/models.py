@@ -33,13 +33,20 @@ class CalculationConfig:
 
 @dataclass(frozen=True)
 class CelestialPosition:
-    """Canonical position data for a calculated celestial body."""
+    """Canonical position calculated for a celestial body."""
 
     body: str
     longitude: float
     latitude: float
     distance: float
     speed_longitude: float
+
+
+@dataclass(frozen=True)
+class AscendantPosition:
+    """Canonical Ascendant position calculated for a birth input."""
+
+    longitude: float
 
 
 @dataclass(frozen=True)
@@ -70,3 +77,4 @@ class AstronomyResult:
     calculation_config: CalculationConfig
     calculation_metadata: CalculationMetadata
     positions: tuple[CelestialPosition, ...]
+    ascendant: AscendantPosition

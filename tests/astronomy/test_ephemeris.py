@@ -130,3 +130,17 @@ def test_unsupported_body_is_rejected():
             "Pluto",
             zodiac="tropical",
         )
+def test_lahiri_ascendant():
+    backend = SwissEphemerisBackend()
+
+    ascendant = backend.calculate_ascendant(
+        VALIDATION_JD,
+        9.5916,
+        76.5222,
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+    )
+
+    assert ascendant == pytest.approx(
+        178.3760846748266
+    )

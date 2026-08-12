@@ -7,6 +7,7 @@ from datetime import datetime
 from .ephemeris import SwissEphemerisBackend
 from .julian import utc_to_julian_day
 from .models import (
+    AscendantPosition,
     AstronomyResult,
     BirthInput,
     CalculationConfig,
@@ -63,6 +64,13 @@ def calculate(
         )
 
     positions = []
+    ascendant_longitude = backend.calculate_ascendant(
+        julian_day_ut,
+        birth_input.latitude,
+        birth_input.longitude,
+        zodiac=calculation_config.zodiac,
+        ayanamsa=calculation_config.ayanamsa,
+    )
 
     for body in bodies:
         ephemeris_body = body
@@ -107,9 +115,14 @@ def calculate(
         node_mode=calculation_config.node,
     )
 
+    ascendant = AscendantPosition(
+        longitude=ascendant_longitude,
+    )
+
     return AstronomyResult(
         birth_input=birth_input,
         calculation_config=calculation_config,
         calculation_metadata=calculation_metadata,
         positions=tuple(positions),
+        ascendant=ascendant,
     )

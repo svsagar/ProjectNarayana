@@ -3,6 +3,7 @@
 from datetime import date, datetime, time, timezone
 
 from src.narayana.astronomy.models import (
+    AscendantPosition,
     AstronomyResult,
     BirthInput,
     CalculationConfig,
@@ -107,11 +108,16 @@ def test_astronomy_result():
         speed_longitude=0.95,
     )
 
+    ascendant = AscendantPosition(
+        longitude=185.25,
+    )
+
     result = AstronomyResult(
         birth_input=birth,
         calculation_config=config,
         calculation_metadata=metadata,
         positions=(position,),
+        ascendant=ascendant,
     )
 
     assert result.calculation_metadata.julian_day_ut == 2443742.6875
@@ -130,3 +136,4 @@ def test_astronomy_result():
     assert result.calculation_metadata.node_mode == "mean"
     assert len(result.positions) == 1
     assert result.positions[0].body == "Sun"
+    assert result.ascendant.longitude == 185.25

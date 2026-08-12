@@ -82,3 +82,42 @@ class SwissEphemerisBackend:
             distance=result[2],
             speed_longitude=result[3],
         )
+    def calculate_ascendant(
+        self,
+        julian_day_ut: float,
+        latitude: float,
+        longitude: float,
+        *,
+        zodiac: str = "tropical",
+        ayanamsa: str | None = None,
+    ) -> float:
+        """Calculate the Ascendant longitude for a Julian Day."""
+
+        if zodiac not in {"tropical", "sidereal"}:
+            raise ValueError(f"Unsupported zodiac: {zodiac}")
+
+        if zodiac == "sidereal":
+            if ayanamsa is None:
+                raise ValueError(
+                    "ayanamsa must be specified for sidereal calculations"
+                )
+
+            if ayanamsa not in self._AYANAMSA_MAP:
+                raise ValueError(f"Unsupported ayanamsa: {ayanamsa}")
+
+            swe.set_sid_mode(self._AYANAMSA_MAP[ayanamsa])
+            flags = swe.FLG_SIDEREAL
+        else:
+            flags = 0
+
+        houses = swe.houses_ex(
+            julian_day_ut,
+            latitude,
+            longitude,
+            b"P",
+            flags,
+        )
+
+        ascendant = houses[1][0]
+
+        return ascendant % 360.0
