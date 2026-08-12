@@ -9,6 +9,7 @@ from src.narayana.astronomy.models import (
     CalculationConfig,
     CalculationMetadata,
     CelestialPosition,
+    HouseCusps,
 )
 
 
@@ -40,6 +41,7 @@ def test_calculation_config():
     assert config.zodiac == "sidereal"
     assert config.ayanamsa == "lahiri"
     assert config.node == "mean"
+    assert config.house_system == "placidus"
     assert config.ephemeris == "swiss_ephemeris"
 
 
@@ -112,12 +114,30 @@ def test_astronomy_result():
         longitude=185.25,
     )
 
+    houses = HouseCusps(
+        cusps=(
+            185.25,
+            215.25,
+            245.25,
+            275.25,
+            305.25,
+            335.25,
+            5.25,
+            35.25,
+            65.25,
+            95.25,
+            125.25,
+            155.25,
+        ),
+    )
+
     result = AstronomyResult(
         birth_input=birth,
         calculation_config=config,
         calculation_metadata=metadata,
         positions=(position,),
         ascendant=ascendant,
+        houses=houses,
     )
 
     assert result.calculation_metadata.julian_day_ut == 2443742.6875
@@ -137,3 +157,5 @@ def test_astronomy_result():
     assert len(result.positions) == 1
     assert result.positions[0].body == "Sun"
     assert result.ascendant.longitude == 185.25
+    assert len(result.houses.cusps) == 12
+    assert result.houses.cusps[0] == 185.25

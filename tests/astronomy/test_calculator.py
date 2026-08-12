@@ -98,7 +98,7 @@ def test_calculate_rising_node_pair():
     )
 
 
-def test_calculate_returns_lahiri_ascendant():
+def test_calculate_returns_lahiri_ascendant_and_houses():
     config = CalculationConfig(
         zodiac="sidereal",
         ayanamsa="lahiri",
@@ -114,6 +114,8 @@ def test_calculate_returns_lahiri_ascendant():
     assert result.ascendant.longitude == pytest.approx(
         178.3760846748266
     )
+    assert len(result.houses.cusps) == 12
+    assert result.houses.cusps[0] == pytest.approx(178.3760846748266)
 
     config = CalculationConfig(
         zodiac="sidereal",

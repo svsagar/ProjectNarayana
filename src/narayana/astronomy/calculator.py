@@ -13,6 +13,7 @@ from .models import (
     CalculationConfig,
     CalculationMetadata,
     CelestialPosition,
+    HouseCusps,
 )
 from .time import resolve_local_time
 
@@ -72,6 +73,14 @@ def calculate(
         ayanamsa=calculation_config.ayanamsa,
     )
 
+    house_cusps_list = backend.calculate_houses(
+        julian_day_ut,
+        birth_input.latitude,
+        birth_input.longitude,
+        zodiac=calculation_config.zodiac,
+        ayanamsa=calculation_config.ayanamsa,
+    )
+
     for body in bodies:
         ephemeris_body = body
 
@@ -119,10 +128,15 @@ def calculate(
         longitude=ascendant_longitude,
     )
 
+    houses = HouseCusps(
+        cusps=house_cusps_list,
+    )
+
     return AstronomyResult(
         birth_input=birth_input,
         calculation_config=calculation_config,
         calculation_metadata=calculation_metadata,
         positions=tuple(positions),
         ascendant=ascendant,
+        houses=houses,
     )

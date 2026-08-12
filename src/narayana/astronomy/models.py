@@ -28,6 +28,7 @@ class CalculationConfig:
     zodiac: str
     ayanamsa: Optional[str]
     node: Optional[str]
+    house_system: str = "placidus"
     ephemeris: str = "swiss_ephemeris"
 
 
@@ -47,6 +48,13 @@ class AscendantPosition:
     """Canonical Ascendant position calculated for a birth input."""
 
     longitude: float
+
+
+@dataclass(frozen=True)
+class HouseCusps:
+    """Canonical house cusp longitudes calculated for a birth input."""
+
+    cusps: tuple[float, ...]
 
 
 @dataclass(frozen=True)
@@ -78,3 +86,4 @@ class AstronomyResult:
     calculation_metadata: CalculationMetadata
     positions: tuple[CelestialPosition, ...]
     ascendant: AscendantPosition
+    houses: HouseCusps

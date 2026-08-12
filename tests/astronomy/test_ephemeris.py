@@ -130,6 +130,39 @@ def test_unsupported_body_is_rejected():
             "Pluto",
             zodiac="tropical",
         )
+
+
+def test_lahiri_house_cusps():
+    backend = SwissEphemerisBackend()
+
+    cusps = backend.calculate_houses(
+        VALIDATION_JD,
+        9.5916,
+        76.5222,
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+    )
+
+    assert len(cusps) == 12
+
+    expected_cusps = (
+        178.3760846748266,
+        208.4577941353212,
+        237.57641150570618,
+        266.52974623398296,
+        296.61909671842363,
+        327.8590998149348,
+        358.3760846748266,
+        28.45779413532121,
+        57.57641150570619,
+        86.52974623398296,
+        116.61909671842365,
+        147.85909981493478,
+    )
+
+    assert cusps == pytest.approx(expected_cusps)
+
+
 def test_lahiri_ascendant():
     backend = SwissEphemerisBackend()
 
@@ -141,6 +174,4 @@ def test_lahiri_ascendant():
         ayanamsa="lahiri",
     )
 
-    assert ascendant == pytest.approx(
-        178.3760846748266
-    )
+    assert ascendant == pytest.approx(178.3760846748266)
