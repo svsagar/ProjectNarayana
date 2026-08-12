@@ -71,6 +71,50 @@ def test_calculate_true_node_mode_is_supported():
     assert len(result.positions) == 1
     assert result.positions[0].body == "True Node"
 
+
+def test_calculate_rising_node_pair():
+    config = CalculationConfig(
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+        node="true",
+    )
+
+    result = calculate(
+        VALIDATION_BIRTH,
+        config,
+        bodies=("Rahu", "Ketu"),
+    )
+
+    assert [position.body for position in result.positions] == [
+        "Rahu",
+        "Ketu",
+    ]
+
+    rahu = result.positions[0]
+    ketu = result.positions[1]
+
+    assert (rahu.longitude - ketu.longitude) % 360.0 == pytest.approx(
+        180.0
+    )
+
+
+def test_calculate_returns_lahiri_ascendant():
+    config = CalculationConfig(
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+        node="mean",
+    )
+
+    result = calculate(
+        VALIDATION_BIRTH,
+        config,
+        bodies=("Sun", "Moon"),
+    )
+
+    assert result.ascendant.longitude == pytest.approx(
+        178.3760846748266
+    )
+
     config = CalculationConfig(
         zodiac="sidereal",
         ayanamsa="lahiri",
