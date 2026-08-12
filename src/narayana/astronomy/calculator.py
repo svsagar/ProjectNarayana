@@ -6,7 +6,13 @@ from datetime import datetime
 
 from .ephemeris import SwissEphemerisBackend
 from .julian import utc_to_julian_day
-from .models import AstronomyResult, BirthInput, CalculationConfig, CelestialPosition
+from .models import (
+    AstronomyResult,
+    BirthInput,
+    CalculationConfig,
+    CalculationMetadata,
+    CelestialPosition,
+)
 from .time import resolve_local_time
 
 
@@ -52,6 +58,9 @@ def calculate(
         if body == "Rahu":
             ephemeris_body = "Mean Node"
 
+        if body == "Ketu":
+            ephemeris_body = "Mean Node"
+
         position = backend.calculate_position(
             julian_day_ut,
             ephemeris_body,
@@ -59,19 +68,39 @@ def calculate(
             ayanamsa=calculation_config.ayanamsa,
         )
 
+        longitude = position.longitude
+
+        if body == "Ketu":
+            longitude = (longitude + 180.0) % 360.0
+
         positions.append(
             CelestialPosition(
                 body=body,
-                longitude=position.longitude,
+                longitude=longitude,
                 latitude=position.latitude,
                 distance=position.distance,
                 speed_longitude=position.speed_longitude,
             )
         )
 
+    calculation_metadata = CalculationMetadata(
+        local_datetime=resolved_time.local_datetime,
+        timezone_name=resolved_time.timezone_name,
+        utc_datetime=resolved_time.utc_datetime,
+        latitude=birth_input.latitude,
+        longitude=birth_input.longitude,
+        coordinate_source=birth_input.coordinate_source,
+        coordinate_precision=birth_input.coordinate_precision,
+        julian_day_ut=julian_day_ut,
+        ephemeris_implementation=calculation_config.ephemeris,
+        ephemeris_version=backend.version,
+        ayanamsa=calculation_config.ayanamsa,
+        node_mode=calculation_config.node,
+    )
+
     return AstronomyResult(
         birth_input=birth_input,
         calculation_config=calculation_config,
-        julian_day_ut=julian_day_ut,
+        calculation_metadata=calculation_metadata,
         positions=tuple(positions),
     )
