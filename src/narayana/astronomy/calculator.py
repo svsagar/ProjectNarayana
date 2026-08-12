@@ -46,20 +46,29 @@ def calculate(
         birth_input.timezone,
     )
 
-    julian_day_ut = utc_to_julian_day(resolved_time.utc_datetime)
+    julian_day_ut = utc_to_julian_day(
+        resolved_time.utc_datetime,
+    )
 
     backend = SwissEphemerisBackend()
+
+    node_body = {
+        "mean": "Mean Node",
+        "true": "True Node",
+    }.get(calculation_config.node)
+
+    if node_body is None:
+        raise ValueError(
+            f"Unsupported node mode: {calculation_config.node}"
+        )
 
     positions = []
 
     for body in bodies:
         ephemeris_body = body
 
-        if body == "Rahu":
-            ephemeris_body = "Mean Node"
-
-        if body == "Ketu":
-            ephemeris_body = "Mean Node"
+        if body in {"Rahu", "Ketu"}:
+            ephemeris_body = node_body
 
         position = backend.calculate_position(
             julian_day_ut,

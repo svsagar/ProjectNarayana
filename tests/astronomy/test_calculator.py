@@ -33,8 +33,8 @@ def test_calculate_returns_requested_bodies():
     assert result.birth_input == VALIDATION_BIRTH
     assert result.calculation_config == config
     assert result.calculation_metadata.julian_day_ut == pytest.approx(
-    2443737.6944444445
-)
+        2443737.6944444445
+    )
     assert [position.body for position in result.positions] == ["Sun", "Moon"]
 
 
@@ -70,3 +70,20 @@ def test_calculate_true_node_mode_is_supported():
 
     assert len(result.positions) == 1
     assert result.positions[0].body == "True Node"
+
+    config = CalculationConfig(
+        zodiac="sidereal",
+        ayanamsa="lahiri",
+        node="true",
+    )
+
+    result = calculate(
+        VALIDATION_BIRTH,
+        config,
+        bodies=("Rahu",),
+    )
+
+    position = result.positions[0]
+
+    assert position.body == "Rahu"
+    assert position.longitude == pytest.approx(153.54066727676695)
