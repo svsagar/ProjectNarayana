@@ -44,6 +44,7 @@ PADA_COUNT = 4
 DEGREES_PER_PADA = DEGREES_PER_NAKSHATRA / PADA_COUNT
 
 TITHI_COUNT = 30
+DEGREES_PER_TITHI = 12.0
 
 TITHI_NAMES = (
     "Pratipada",
@@ -91,7 +92,7 @@ def calculate_tithi(
     """Calculate the current Tithi from Sun and Moon longitudes."""
 
     elongation = (moon.longitude - sun.longitude) % 360.0
-    return int(elongation // 12.0) + 1
+    return int(elongation // DEGREES_PER_TITHI) + 1
 
 
 def get_tithi_name(tithi: int) -> str:
@@ -103,6 +104,24 @@ def get_tithi_name(tithi: int) -> str:
         )
 
     return TITHI_NAMES[tithi - 1]
+
+
+def get_tithi_paksha(tithi: int) -> str:
+    """Return the Paksha for a Tithi.
+
+    Tithis 1 through 15 belong to Shukla Paksha.
+    Tithis 16 through 30 belong to Krishna Paksha.
+    """
+
+    if not 1 <= tithi <= TITHI_COUNT:
+        raise ValueError(
+            f"Tithi must be between 1 and {TITHI_COUNT}"
+        )
+
+    if tithi <= 15:
+        return "Shukla"
+
+    return "Krishna"
 
 
 def calculate_nakshatra(moon: CelestialPosition) -> int:

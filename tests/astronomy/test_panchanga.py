@@ -16,6 +16,7 @@ from src.narayana.astronomy.panchanga import (
     calculate_yoga,
     get_nakshatra_name,
     get_tithi_name,
+    get_tithi_paksha,
 )
 
 
@@ -189,3 +190,17 @@ def test_vara_calculation():
     value = datetime(2026, 8, 10, 10, 10)
 
     assert calculate_vara(value) == 1
+
+def test_tithi_paksha():
+    assert get_tithi_paksha(1) == "Shukla"
+    assert get_tithi_paksha(15) == "Shukla"
+    assert get_tithi_paksha(16) == "Krishna"
+    assert get_tithi_paksha(30) == "Krishna"
+
+
+def test_tithi_paksha_rejects_invalid_number():
+    with pytest.raises(ValueError):
+        get_tithi_paksha(0)
+
+    with pytest.raises(ValueError):
+        get_tithi_paksha(31)
