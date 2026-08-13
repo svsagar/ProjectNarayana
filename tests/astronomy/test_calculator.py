@@ -28,8 +28,14 @@ def test_calculate_returns_requested_bodies():
         VALIDATION_BIRTH,
         config,
         bodies=("Sun", "Moon"),
-    )
 
+    )
+    assert result.panchanga is not None
+    assert result.panchanga.tithi == 14
+    assert result.panchanga.nakshatra == 22
+    assert result.panchanga.yoga == 4
+    assert result.panchanga.karana == 28
+    assert result.panchanga.vara == 4
     assert result.birth_input == VALIDATION_BIRTH
     assert result.calculation_config == config
     assert result.calculation_metadata.julian_day_ut == pytest.approx(

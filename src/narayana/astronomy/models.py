@@ -49,11 +49,12 @@ class HouseCusps:
 
 @dataclass(frozen=True)
 class PanchangaData:
-    tithi: float
-    nakshatra: float
-    yoga: float
-    karana: float
-    vara: int
+    tithi: int
+    nakshatra: int
+    nakshatra_pada: int
+    yoga: int
+    karana: int
+    vara: Optional[int] = None
 
 
 @dataclass(frozen=True)

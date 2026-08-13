@@ -162,15 +162,17 @@ def test_astronomy_result():
     assert result.houses.cusps[0] == 185.25
 def test_panchanga_data():
     panchanga = PanchangaData(
-        tithi=1.0,
-        nakshatra=5.0,
-        yoga=10.0,
-        karana=2.0,
-        vara=3,
+        tithi=14,
+        nakshatra=23,
+        nakshatra_pada=1,
+        yoga=4,
+        karana=28,
+        vara=4,
     )
 
-    assert panchanga.tithi == 1.0
-    assert panchanga.nakshatra == 5.0
-    assert panchanga.yoga == 10.0
-    assert panchanga.karana == 2.0
-    assert panchanga.vara == 3
+    assert panchanga.tithi == 14
+    assert panchanga.nakshatra == 23
+    assert panchanga.nakshatra_pada == 1
+    assert panchanga.yoga == 4
+    assert panchanga.karana == 28
+    assert panchanga.vara == 4

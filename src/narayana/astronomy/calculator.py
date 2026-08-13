@@ -15,6 +15,7 @@ from .models import (
     CelestialPosition,
     HouseCusps,
 )
+from .panchanga import calculate_panchanga
 from .time import resolve_local_time
 
 
@@ -110,6 +111,25 @@ def calculate(
             )
         )
 
+    sun_position = next(
+        (position for position in positions if position.body == "Sun"),
+        None,
+    )
+
+    moon_position = next(
+        (position for position in positions if position.body == "Moon"),
+        None,
+    )
+
+    panchanga = None
+
+    if sun_position is not None and moon_position is not None:
+        panchanga = calculate_panchanga(
+            sun_position,
+            moon_position,
+            resolved_time.local_datetime,
+        )
+
     calculation_metadata = CalculationMetadata(
         local_datetime=resolved_time.local_datetime,
         timezone_name=resolved_time.timezone_name,
@@ -140,4 +160,5 @@ def calculate(
         positions=tuple(positions),
         ascendant=ascendant,
         houses=houses,
+        panchanga=panchanga,
     )
