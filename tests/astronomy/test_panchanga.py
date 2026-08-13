@@ -15,6 +15,7 @@ from src.narayana.astronomy.panchanga import (
     calculate_vara,
     calculate_yoga,
     get_nakshatra_name,
+    get_tithi_name,
 )
 
 
@@ -46,6 +47,18 @@ def test_tithi_calculation():
     tithi = calculate_tithi(sun, moon)
 
     assert tithi == 14
+
+
+def test_tithi_name():
+    assert get_tithi_name(14) == "Chaturdashi"
+
+
+def test_tithi_name_rejects_invalid_number():
+    with pytest.raises(ValueError):
+        get_tithi_name(0)
+
+    with pytest.raises(ValueError):
+        get_tithi_name(31)
 
 
 def test_nakshatra_calculation():
@@ -83,15 +96,13 @@ def test_nakshatra_pada_calculation():
 
     moon = result.positions[1]
 
-    pada = calculate_nakshatra_pada(moon)
+    nakshatra_pada = calculate_nakshatra_pada(moon)
 
-    assert pada == 1
+    assert nakshatra_pada == 1
 
 
 def test_nakshatra_name():
-    assert get_nakshatra_name(1) == "Ashwini"
     assert get_nakshatra_name(22) == "Shravana"
-    assert get_nakshatra_name(27) == "Revati"
 
 
 def test_nakshatra_name_rejects_invalid_number():

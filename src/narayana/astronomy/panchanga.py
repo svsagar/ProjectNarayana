@@ -9,6 +9,7 @@ from .models import CelestialPosition, PanchangaData
 
 NAKSHATRA_COUNT = 27
 DEGREES_PER_NAKSHATRA = 360.0 / NAKSHATRA_COUNT
+
 NAKSHATRA_NAMES = (
     "Ashwini",
     "Bharani",
@@ -42,6 +43,41 @@ NAKSHATRA_NAMES = (
 PADA_COUNT = 4
 DEGREES_PER_PADA = DEGREES_PER_NAKSHATRA / PADA_COUNT
 
+TITHI_COUNT = 30
+
+TITHI_NAMES = (
+    "Pratipada",
+    "Dvitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashthi",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Purnima",
+    "Pratipada",
+    "Dvitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashthi",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Amavasya",
+)
+
 YOGA_COUNT = 27
 DEGREES_PER_YOGA = 360.0 / YOGA_COUNT
 
@@ -58,11 +94,23 @@ def calculate_tithi(
     return int(elongation // 12.0) + 1
 
 
+def get_tithi_name(tithi: int) -> str:
+    """Return the canonical name for a Tithi number, 1 through 30."""
+
+    if not 1 <= tithi <= TITHI_COUNT:
+        raise ValueError(
+            f"Tithi must be between 1 and {TITHI_COUNT}"
+        )
+
+    return TITHI_NAMES[tithi - 1]
+
+
 def calculate_nakshatra(moon: CelestialPosition) -> int:
     """Calculate the Moon's Nakshatra number, 1 through 27."""
 
     longitude = moon.longitude % 360.0
     return int(longitude // DEGREES_PER_NAKSHATRA) + 1
+
 
 def get_nakshatra_name(nakshatra: int) -> str:
     """Return the canonical name for a Nakshatra number, 1 through 27."""
@@ -73,6 +121,7 @@ def get_nakshatra_name(nakshatra: int) -> str:
         )
 
     return NAKSHATRA_NAMES[nakshatra - 1]
+
 
 def calculate_nakshatra_pada(moon: CelestialPosition) -> int:
     """Calculate the Moon's Nakshatra Pada number, 1 through 4."""
