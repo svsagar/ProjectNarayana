@@ -9,11 +9,12 @@ from src.narayana.astronomy.models import BirthInput, CalculationConfig
 from src.narayana.astronomy.panchanga import (
     calculate_karana,
     calculate_nakshatra,
+    calculate_nakshatra_pada,
     calculate_panchanga,
     calculate_tithi,
-    calculate_yoga,
     calculate_vara,
-    calculate_nakshatra_pada,
+    calculate_yoga,
+    get_nakshatra_name,
 )
 
 
@@ -66,6 +67,7 @@ def test_nakshatra_calculation():
 
     assert nakshatra == 22
 
+
 def test_nakshatra_pada_calculation():
     config = CalculationConfig(
         zodiac="sidereal",
@@ -84,6 +86,20 @@ def test_nakshatra_pada_calculation():
     pada = calculate_nakshatra_pada(moon)
 
     assert pada == 1
+
+
+def test_nakshatra_name():
+    assert get_nakshatra_name(1) == "Ashwini"
+    assert get_nakshatra_name(22) == "Shravana"
+    assert get_nakshatra_name(27) == "Revati"
+
+
+def test_nakshatra_name_rejects_invalid_number():
+    with pytest.raises(ValueError):
+        get_nakshatra_name(0)
+
+    with pytest.raises(ValueError):
+        get_nakshatra_name(28)
 
 
 def test_panchanga_calculation():
@@ -110,10 +126,11 @@ def test_panchanga_calculation():
 
     assert panchanga.tithi == 14
     assert panchanga.nakshatra == 22
+    assert panchanga.nakshatra_pada == 1
     assert panchanga.yoga == 4
     assert panchanga.karana == 28
     assert panchanga.vara == 4
-    assert panchanga.nakshatra_pada == 1
+
 
 def test_yoga_calculation():
     config = CalculationConfig(
@@ -134,6 +151,8 @@ def test_yoga_calculation():
     yoga = calculate_yoga(sun, moon)
 
     assert yoga == 4
+
+
 def test_karana_calculation():
     config = CalculationConfig(
         zodiac="sidereal",
@@ -153,6 +172,8 @@ def test_karana_calculation():
     karana = calculate_karana(sun, moon)
 
     assert karana == 28
+
+
 def test_vara_calculation():
     value = datetime(2026, 8, 10, 10, 10)
 

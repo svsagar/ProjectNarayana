@@ -9,6 +9,35 @@ from .models import CelestialPosition, PanchangaData
 
 NAKSHATRA_COUNT = 27
 DEGREES_PER_NAKSHATRA = 360.0 / NAKSHATRA_COUNT
+NAKSHATRA_NAMES = (
+    "Ashwini",
+    "Bharani",
+    "Krittika",
+    "Rohini",
+    "Mrigashira",
+    "Ardra",
+    "Punarvasu",
+    "Pushya",
+    "Ashlesha",
+    "Magha",
+    "Purva Phalguni",
+    "Uttara Phalguni",
+    "Hasta",
+    "Chitra",
+    "Swati",
+    "Vishakha",
+    "Anuradha",
+    "Jyeshtha",
+    "Mula",
+    "Purva Ashadha",
+    "Uttara Ashadha",
+    "Shravana",
+    "Dhanishta",
+    "Shatabhisha",
+    "Purva Bhadrapada",
+    "Uttara Bhadrapada",
+    "Revati",
+)
 
 PADA_COUNT = 4
 DEGREES_PER_PADA = DEGREES_PER_NAKSHATRA / PADA_COUNT
@@ -35,6 +64,15 @@ def calculate_nakshatra(moon: CelestialPosition) -> int:
     longitude = moon.longitude % 360.0
     return int(longitude // DEGREES_PER_NAKSHATRA) + 1
 
+def get_nakshatra_name(nakshatra: int) -> str:
+    """Return the canonical name for a Nakshatra number, 1 through 27."""
+
+    if not 1 <= nakshatra <= NAKSHATRA_COUNT:
+        raise ValueError(
+            f"Nakshatra must be between 1 and {NAKSHATRA_COUNT}"
+        )
+
+    return NAKSHATRA_NAMES[nakshatra - 1]
 
 def calculate_nakshatra_pada(moon: CelestialPosition) -> int:
     """Calculate the Moon's Nakshatra Pada number, 1 through 4."""
