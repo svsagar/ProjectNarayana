@@ -1,4 +1,4 @@
-﻿"""Core data models for the Narayana Astronomy Engine."""
+﻿"""Canonical data models for Project Narayana Astronomy Engine."""
 
 from __future__ import annotations
 
@@ -9,8 +9,6 @@ from typing import Optional
 
 @dataclass(frozen=True)
 class BirthInput:
-    """Validated civil birth information supplied to the astronomy engine."""
-
     birth_date: date
     birth_time: time
     timezone: str
@@ -23,19 +21,15 @@ class BirthInput:
 
 @dataclass(frozen=True)
 class CalculationConfig:
-    """Explicit configuration controlling an astronomy calculation."""
-
-    zodiac: str
-    ayanamsa: Optional[str]
-    node: Optional[str]
-    house_system: str = "placidus"
+    zodiac: str = "sidereal"
+    ayanamsa: str = "lahiri"
+    node: str = "mean"
     ephemeris: str = "swiss_ephemeris"
+    house_system: str = "placidus"
 
 
 @dataclass(frozen=True)
 class CelestialPosition:
-    """Canonical position calculated for a celestial body."""
-
     body: str
     longitude: float
     latitude: float
@@ -45,22 +39,25 @@ class CelestialPosition:
 
 @dataclass(frozen=True)
 class AscendantPosition:
-    """Canonical Ascendant position calculated for a birth input."""
-
     longitude: float
 
 
 @dataclass(frozen=True)
 class HouseCusps:
-    """Canonical house cusp longitudes calculated for a birth input."""
-
     cusps: tuple[float, ...]
 
 
 @dataclass(frozen=True)
-class CalculationMetadata:
-    """Metadata required to reproduce and audit a calculation."""
+class PanchangaData:
+    tithi: float
+    nakshatra: float
+    yoga: float
+    karana: float
+    vara: int
 
+
+@dataclass(frozen=True)
+class CalculationMetadata:
     local_datetime: datetime
     timezone_name: str
     utc_datetime: datetime
@@ -71,19 +68,16 @@ class CalculationMetadata:
     julian_day_ut: float
     ephemeris_implementation: str
     ephemeris_version: str
-    ayanamsa: Optional[str]
-    node_mode: Optional[str]
-    time_scale: str = "UT"
-    calculation_mode: str = "geocentric"
+    ayanamsa: str
+    node_mode: str
 
 
 @dataclass(frozen=True)
 class AstronomyResult:
-    """Canonical result produced by the Astronomy Engine."""
-
     birth_input: BirthInput
     calculation_config: CalculationConfig
     calculation_metadata: CalculationMetadata
     positions: tuple[CelestialPosition, ...]
     ascendant: AscendantPosition
     houses: HouseCusps
+    panchanga: Optional[PanchangaData] = None

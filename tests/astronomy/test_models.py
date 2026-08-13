@@ -10,6 +10,7 @@ from src.narayana.astronomy.models import (
     CalculationMetadata,
     CelestialPosition,
     HouseCusps,
+    PanchangaData,
 )
 
 
@@ -159,3 +160,17 @@ def test_astronomy_result():
     assert result.ascendant.longitude == 185.25
     assert len(result.houses.cusps) == 12
     assert result.houses.cusps[0] == 185.25
+def test_panchanga_data():
+    panchanga = PanchangaData(
+        tithi=1.0,
+        nakshatra=5.0,
+        yoga=10.0,
+        karana=2.0,
+        vara=3,
+    )
+
+    assert panchanga.tithi == 1.0
+    assert panchanga.nakshatra == 5.0
+    assert panchanga.yoga == 10.0
+    assert panchanga.karana == 2.0
+    assert panchanga.vara == 3

@@ -65,6 +65,7 @@ def calculate(
         )
 
     positions = []
+
     ascendant_longitude = backend.calculate_ascendant(
         julian_day_ut,
         birth_input.latitude,
