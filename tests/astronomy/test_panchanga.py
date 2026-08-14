@@ -17,6 +17,7 @@ from src.narayana.astronomy.panchanga import (
     get_nakshatra_name,
     get_tithi_name,
     get_tithi_paksha,
+    get_yoga_name,
 )
 
 
@@ -138,6 +139,8 @@ def test_panchanga_calculation():
 
     assert panchanga.tithi == 14
     assert panchanga.nakshatra == 22
+    assert panchanga.tithi_name == "Chaturdashi"
+    assert panchanga.tithi_paksha == "Shukla"
     assert panchanga.nakshatra_pada == 1
     assert panchanga.yoga == 4
     assert panchanga.karana == 28
@@ -165,6 +168,18 @@ def test_yoga_calculation():
     assert yoga == 4
 
 
+def test_yoga_name():
+    assert get_yoga_name(4) == "Saubhagya"
+
+
+def test_yoga_name_rejects_invalid_number():
+    with pytest.raises(ValueError):
+        get_yoga_name(0)
+
+    with pytest.raises(ValueError):
+        get_yoga_name(28)
+
+
 def test_karana_calculation():
     config = CalculationConfig(
         zodiac="sidereal",
@@ -190,6 +205,7 @@ def test_vara_calculation():
     value = datetime(2026, 8, 10, 10, 10)
 
     assert calculate_vara(value) == 1
+
 
 def test_tithi_paksha():
     assert get_tithi_paksha(1) == "Shukla"

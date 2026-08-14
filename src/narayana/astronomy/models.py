@@ -55,6 +55,8 @@ class PanchangaData:
     yoga: int
     karana: int
     vara: Optional[int] = None
+    tithi_name: Optional[str] = None
+    tithi_paksha: Optional[str] = None
 
 
 @dataclass(frozen=True)
