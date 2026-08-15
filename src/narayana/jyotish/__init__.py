@@ -1,6 +1,10 @@
 """Jyotish calculation layer for Project Narayana."""
 
 from .chart import GrahaChart, calculate_graha_chart
+from .integration import (
+    GrahaBhavaPlacement,
+    calculate_graha_bhava_placement,
+)
 from .graha import (
     GRAHAS,
     NODE_GRAHAS,
@@ -47,4 +51,6 @@ __all__ = [
     "get_rashi_number",
     "is_node_graha",
     "is_planetary_graha",
+    "GrahaBhavaPlacement",
+    "calculate_graha_bhava_placement",
 ]
