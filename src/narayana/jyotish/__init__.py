@@ -5,6 +5,9 @@ from .birth_chart import (
     JyotishBirthChart,
     calculate_birth_chart,
 )
+from .api import (
+    calculate_jyotish_birth_chart,
+)
 from .integration import (
     GrahaBhavaPlacement,
     calculate_graha_bhava_placement,
@@ -59,4 +62,5 @@ __all__ = [
     "calculate_graha_bhava_placement",
     "JyotishBirthChart",
     "calculate_birth_chart",
+    "calculate_jyotish_birth_chart",
 ]
