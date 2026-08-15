@@ -1,6 +1,10 @@
 """Jyotish calculation layer for Project Narayana."""
 
 from .chart import GrahaChart, calculate_graha_chart
+from .birth_chart import (
+    JyotishBirthChart,
+    calculate_birth_chart,
+)
 from .integration import (
     GrahaBhavaPlacement,
     calculate_graha_bhava_placement,
@@ -53,4 +57,6 @@ __all__ = [
     "is_planetary_graha",
     "GrahaBhavaPlacement",
     "calculate_graha_bhava_placement",
+    "JyotishBirthChart",
+    "calculate_birth_chart",
 ]
