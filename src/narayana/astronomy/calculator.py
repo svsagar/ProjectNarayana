@@ -27,6 +27,8 @@ SUPPORTED_BODIES = (
     "Jupiter",
     "Venus",
     "Saturn",
+    "Rahu",
+    "Ketu",
     "Mean Node",
 )
 

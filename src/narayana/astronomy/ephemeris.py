@@ -24,6 +24,11 @@ class SwissEphemerisBackend:
     _BODY_MAP = {
         "Sun": swe.SUN,
         "Moon": swe.MOON,
+        "Mars": swe.MARS,
+        "Mercury": swe.MERCURY,
+        "Jupiter": swe.JUPITER,
+        "Venus": swe.VENUS,
+        "Saturn": swe.SATURN,
         "Mean Node": swe.MEAN_NODE,
         "True Node": swe.TRUE_NODE,
     }
