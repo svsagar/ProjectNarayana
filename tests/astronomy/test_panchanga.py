@@ -14,6 +14,7 @@ from src.narayana.astronomy.panchanga import (
     calculate_tithi,
     calculate_vara,
     calculate_yoga,
+    get_karana_name,
     get_nakshatra_name,
     get_tithi_name,
     get_tithi_paksha,
@@ -169,7 +170,9 @@ def test_yoga_calculation():
 
 
 def test_yoga_name():
-    assert get_yoga_name(4) == "Saubhagya"
+    assert get_yoga_name(1) == "Vishkambha"
+    assert get_yoga_name(14) == "Harshana"
+    assert get_yoga_name(27) == "Vaidhriti"
 
 
 def test_yoga_name_rejects_invalid_number():
@@ -199,6 +202,94 @@ def test_karana_calculation():
     karana = calculate_karana(sun, moon)
 
     assert karana == 28
+
+
+def test_karana_name():
+    assert get_karana_name(1) == "Kimstughna"
+    assert get_karana_name(2) == "Bava"
+    assert get_karana_name(3) == "Balava"
+    assert get_karana_name(8) == "Vishti"
+    assert get_karana_name(57) == "Vishti"
+    assert get_karana_name(58) == "Shakuni"
+    assert get_karana_name(59) == "Chatushpada"
+    assert get_karana_name(60) == "Naga"
+def test_all_karana_positions():
+    expected = [
+        "Kimstughna",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Bava",
+        "Balava",
+        "Kaulava",
+        "Taitila",
+        "Garaja",
+        "Vanija",
+        "Vishti",
+        "Shakuni",
+        "Chatushpada",
+        "Naga",
+    ]
+
+    actual = [
+        get_karana_name(position)
+        for position in range(1, 61)
+    ]
+
+    assert actual == expected
+
+def test_karana_name_rejects_invalid_number():
+    with pytest.raises(ValueError):
+        get_karana_name(0)
+
+    with pytest.raises(ValueError):
+        get_karana_name(61)
 
 
 def test_vara_calculation():

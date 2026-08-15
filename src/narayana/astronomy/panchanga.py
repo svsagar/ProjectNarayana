@@ -43,11 +43,46 @@ NAKSHATRA_NAMES = (
 PADA_COUNT = 4
 DEGREES_PER_PADA = DEGREES_PER_NAKSHATRA / PADA_COUNT
 
+TITHI_COUNT = 30
+
+TITHI_NAMES = (
+    "Pratipada",
+    "Dvitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashthi",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Purnima",
+    "Pratipada",
+    "Dvitiya",
+    "Tritiya",
+    "Chaturthi",
+    "Panchami",
+    "Shashthi",
+    "Saptami",
+    "Ashtami",
+    "Navami",
+    "Dashami",
+    "Ekadashi",
+    "Dwadashi",
+    "Trayodashi",
+    "Chaturdashi",
+    "Amavasya",
+)
+
 YOGA_COUNT = 27
 DEGREES_PER_YOGA = 360.0 / YOGA_COUNT
 
 YOGA_NAMES = (
-    "Vishkumbha",
+    "Vishkambha",
     "Priti",
     "Ayushman",
     "Saubhagya",
@@ -55,7 +90,7 @@ YOGA_NAMES = (
     "Atiganda",
     "Sukarma",
     "Dhriti",
-    "Shoola",
+    "Shula",
     "Ganda",
     "Vriddhi",
     "Dhruva",
@@ -64,7 +99,7 @@ YOGA_NAMES = (
     "Vajra",
     "Siddhi",
     "Vyatipata",
-    "Variyan",
+    "Variyana",
     "Parigha",
     "Shiva",
     "Siddha",
@@ -77,6 +112,24 @@ YOGA_NAMES = (
 )
 
 DEGREES_PER_KARANA = 6.0
+KARANA_COUNT = 60
+
+RECURRING_KARANA_NAMES = (
+    "Bava",
+    "Balava",
+    "Kaulava",
+    "Taitila",
+    "Garaja",
+    "Vanija",
+    "Vishti",
+)
+
+FIXED_KARANA_NAMES = (
+    "Shakuni",
+    "Chatushpada",
+    "Naga",
+    "Kimstughna",
+)
 
 
 def calculate_tithi(
@@ -92,55 +145,23 @@ def calculate_tithi(
 def get_tithi_name(tithi: int) -> str:
     """Return the canonical name for a Tithi number, 1 through 30."""
 
-    tithi_names = (
-        "Pratipada",
-        "Dvitiya",
-        "Tritiya",
-        "Chaturthi",
-        "Panchami",
-        "Shashthi",
-        "Saptami",
-        "Ashtami",
-        "Navami",
-        "Dashami",
-        "Ekadashi",
-        "Dwadashi",
-        "Trayodashi",
-        "Chaturdashi",
-        "Purnima",
-        "Pratipada",
-        "Dvitiya",
-        "Tritiya",
-        "Chaturthi",
-        "Panchami",
-        "Shashthi",
-        "Saptami",
-        "Ashtami",
-        "Navami",
-        "Dashami",
-        "Ekadashi",
-        "Dwadashi",
-        "Trayodashi",
-        "Chaturdashi",
-        "Amavasya",
-    )
+    if not 1 <= tithi <= TITHI_COUNT:
+        raise ValueError(
+            f"Tithi must be between 1 and {TITHI_COUNT}"
+        )
 
-    if not 1 <= tithi <= 30:
-        raise ValueError("Tithi must be between 1 and 30")
-
-    return tithi_names[tithi - 1]
+    return TITHI_NAMES[tithi - 1]
 
 
 def get_tithi_paksha(tithi: int) -> str:
-    """Return the Paksha for a Tithi number, 1 through 30."""
+    """Return the Paksha for a Tithi number."""
 
-    if not 1 <= tithi <= 30:
-        raise ValueError("Tithi must be between 1 and 30")
+    if not 1 <= tithi <= TITHI_COUNT:
+        raise ValueError(
+            f"Tithi must be between 1 and {TITHI_COUNT}"
+        )
 
-    if tithi <= 15:
-        return "Shukla"
-
-    return "Krishna"
+    return "Shukla" if tithi <= 15 else "Krishna"
 
 
 def calculate_nakshatra(moon: CelestialPosition) -> int:
@@ -203,10 +224,32 @@ def calculate_karana(
     sun: CelestialPosition,
     moon: CelestialPosition,
 ) -> int:
-    """Calculate the six-degree Karana segment."""
+    """Calculate the six-degree Karana segment, 1 through 60."""
 
     elongation = (moon.longitude - sun.longitude) % 360.0
     return int(elongation // DEGREES_PER_KARANA) + 1
+
+
+def get_karana_name(karana: int) -> str:
+    """Return the traditional name for a Karana position, 1 through 60.
+
+    The first seven positions follow the traditional fixed opening
+    sequence. Positions 8 through 57 repeat the seven movable Karanas.
+    Positions 58 through 60 are the final fixed Karanas.
+    """
+
+    if not 1 <= karana <= KARANA_COUNT:
+        raise ValueError(
+            f"Karana must be between 1 and {KARANA_COUNT}"
+        )
+
+    if karana == 1:
+        return "Kimstughna"
+
+    if 2 <= karana <= 57:
+        return RECURRING_KARANA_NAMES[(karana - 2) % 7]
+
+    return FIXED_KARANA_NAMES[karana - 58]
 
 
 def calculate_vara(value: datetime) -> int:
@@ -226,12 +269,8 @@ def calculate_panchanga(
     """Calculate the supported Panchanga elements."""
 
     tithi = calculate_tithi(sun, moon)
-    tithi_name = get_tithi_name(tithi)
-    tithi_paksha = get_tithi_paksha(tithi)
-
     nakshatra = calculate_nakshatra(moon)
     nakshatra_pada = calculate_nakshatra_pada(moon)
-
     yoga = calculate_yoga(sun, moon)
     karana = calculate_karana(sun, moon)
 
@@ -247,6 +286,6 @@ def calculate_panchanga(
         yoga=yoga,
         karana=karana,
         vara=vara,
-        tithi_name=tithi_name,
-        tithi_paksha=tithi_paksha,
+        tithi_name=get_tithi_name(tithi),
+        tithi_paksha=get_tithi_paksha(tithi),
     )
