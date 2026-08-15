@@ -7,10 +7,13 @@ from src.narayana.jyotish.dignity import (
     EXALTATION_RASHIS,
     OWN_RASHIS,
     Dignity,
+    DIGNITY_SCORES,
     get_debilitation_rashi,
     get_dignity,
+    get_dignity_score,
     get_exaltation_rashi,
     get_own_rashis,
+    get_placement_strength,
 )
 from src.narayana.jyotish.graha import Graha
 from src.narayana.jyotish.placement import (
@@ -75,6 +78,64 @@ def test_own_signs(
 ):
     for rashi in rashis:
         assert get_dignity(graha, rashi) is Dignity.OWN_SIGN
+
+
+@pytest.mark.parametrize(
+    "dignity,expected_score",
+    [
+        (Dignity.EXALTED, 5),
+        (Dignity.OWN_SIGN, 4),
+        (Dignity.FRIENDLY, 3),
+        (Dignity.NEUTRAL, 2),
+        (Dignity.INIMICAL, 1),
+        (Dignity.DEBILITATED, 0),
+    ],
+)
+def test_dignity_scores(
+    dignity,
+    expected_score,
+):
+    assert DIGNITY_SCORES[dignity] == expected_score
+
+
+@pytest.mark.parametrize(
+    "graha,rashi,expected_score",
+    [
+        (Graha.SURYA, 1, 5),
+        (Graha.SURYA, 5, 4),
+        (Graha.SURYA, 9, 3),
+        (Graha.SURYA, 10, 1),
+        (Graha.SURYA, 7, 0),
+        (Graha.RAHU, 1, 2),
+        (Graha.KETU, 12, 2),
+    ],
+)
+def test_get_dignity_score(
+    graha,
+    rashi,
+    expected_score,
+):
+    assert get_dignity_score(
+        graha,
+        rashi,
+    ) == expected_score
+
+
+def test_placement_strength():
+    placement = calculate_graha_placement(
+        Graha.SURYA,
+        10.0,
+    )
+
+    assert get_placement_strength(placement) == 5
+
+
+def test_placement_strength_rejects_invalid_input():
+    with pytest.raises(
+        TypeError,
+        match="placement must be a GrahaPlacement",
+    ):
+        get_placement_strength(None)
 
 
 def test_sun_in_jupiter_sign_is_friendly():

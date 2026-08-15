@@ -15,6 +15,8 @@ from .dignity import (
     get_exaltation_rashi,
     get_graha_dignity,
     get_own_rashis,
+    get_dignity_score,
+    get_placement_strength,
 )
 from .analysis import (
     BhavaOccupancy,

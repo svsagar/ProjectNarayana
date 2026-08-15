@@ -7,8 +7,6 @@ from enum import Enum
 from .graha import Graha
 from .placement import GrahaPlacement
 from .rashi import get_rashi_name
-
-
 class Dignity(str, Enum):
     """Classical sign-based Graha dignity."""
 
@@ -19,6 +17,44 @@ class Dignity(str, Enum):
     NEUTRAL = "Neutral"
     INIMICAL = "Inimical"
 
+DIGNITY_SCORES: dict[Dignity, int] = {
+    Dignity.EXALTED: 5,
+    Dignity.OWN_SIGN: 4,
+    Dignity.FRIENDLY: 3,
+    Dignity.NEUTRAL: 2,
+    Dignity.INIMICAL: 1,
+    Dignity.DEBILITATED: 0,
+}
+
+
+def get_dignity_score(
+    graha: Graha,
+    rashi_number: int,
+) -> int:
+    """Return the numerical strength associated with Graha dignity."""
+
+    dignity = get_dignity(
+        graha,
+        rashi_number,
+    )
+
+    return DIGNITY_SCORES[dignity]
+
+
+def get_placement_strength(
+    placement: GrahaPlacement,
+) -> int:
+    """Return the dignity strength score for a Graha placement."""
+
+    if not isinstance(placement, GrahaPlacement):
+        raise TypeError(
+            "placement must be a GrahaPlacement"
+        )
+
+    return get_dignity_score(
+        placement.graha,
+        placement.rashi_number,
+    )
 
 # Classical exaltation signs.
 EXALTATION_RASHIS: dict[Graha, int] = {
