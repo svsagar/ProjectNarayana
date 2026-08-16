@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Narayana — Jyotish Calculation Platform</title>
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="wordmark">
+      <span class="glyph" aria-hidden="true">ॐ</span>
+      <span class="wordmark-text">
+        <span class="wordmark-name">NARAYANA</span>
+        <span class="wordmark-sub">Jyotish &amp; Astronomy Calculation Platform</span>
+      </span>
+    </div>
+    <div class="masthead-meta">
+      <span class="meta-dot" id="engine-dot"></span>
+      <span id="engine-text">Connecting to calculation core…</span>
+    </div>
+  </div>
+</header>
+
+<main class="layout">
+
+  <section class="panel panel-input" aria-labelledby="birth-heading">
+    <form id="chart-form" novalidate>
+      <h2 class="panel-title" id="birth-heading">Birth Details</h2>
+
+      <div class="field">
+        <label for="birth_date">Date of Birth</label>
+        <input type="date" id="birth_date" name="birth_date" required />
+        <p class="field-error" id="err-birth_date"></p>
+      </div>
+
+      <div class="field">
+        <label for="birth_time">Time of Birth <span class="hint">local clock time</span></label>
+        <input type="time" id="birth_time" name="birth_time" step="1" required />
+        <p class="field-error" id="err-birth_time"></p>
+      </div>
+
+      <div class="field">
+        <label for="place_name">Birth Place <span class="hint">label only</span></label>
+        <input type="text" id="place_name" name="place_name" placeholder="Kochi, Kerala, India" autocomplete="off" />
+        <p class="field-error" id="err-place_name"></p>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="latitude">Latitude <span class="hint">° N +</span></label>
+          <input type="number" id="latitude" name="latitude" step="0.000001" min="-90" max="90" placeholder="9.931200" required />
+          <p class="field-error" id="err-latitude"></p>
+        </div>
+        <div class="field">
+          <label for="longitude">Longitude <span class="hint">° E +</span></label>
+          <input type="number" id="longitude" name="longitude" step="0.000001" min="-180" max="180" placeholder="76.267300" required />
+          <p class="field-error" id="err-longitude"></p>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="timezone">Timezone <span class="hint">IANA name</span></label>
+        <input type="text" id="timezone" name="timezone" list="tz-list" value="Asia/Kolkata" required />
+        <datalist id="tz-list">
+          <option value="Asia/Kolkata"></option>
+          <option value="Asia/Colombo"></option>
+          <option value="Asia/Kathmandu"></option>
+          <option value="Asia/Dubai"></option>
+          <option value="Asia/Singapore"></option>
+          <option value="Europe/London"></option>
+          <option value="America/New_York"></option>
+          <option value="UTC"></option>
+        </datalist>
+        <p class="field-error" id="err-timezone"></p>
+      </div>
+
+      <h2 class="panel-title panel-title-spaced">Calculation Configuration</h2>
+      <p class="panel-note">Options and defaults are supplied by the Narayana core.</p>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="zodiac">Zodiac</label>
+          <select id="zodiac" name="zodiac"></select>
+        </div>
+        <div class="field">
+          <label for="ayanamsa">Ayanamsa</label>
+          <select id="ayanamsa" name="ayanamsa"></select>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="node">Lunar Node</label>
+          <select id="node" name="node"></select>
+        </div>
+        <div class="field">
+          <label for="house_system">House System</label>
+          <select id="house_system" name="house_system"></select>
+        </div>
+      </div>
+      <p class="config-note" id="house-note"></p>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" id="calculate-btn">Calculate</button>
+        <button type="button" class="btn-quiet" id="reset-btn">Reset</button>
+      </div>
+      <p class="form-summary-error" id="form-error" role="alert"></p>
+    </form>
+  </section>
+
+  <section class="panel panel-results" aria-live="polite">
+
+    <div class="state" id="state-empty">
+      <div class="state-inner">
+        <div class="state-rule"></div>
+        <h2>Awaiting Birth Details</h2>
+        <p>Enter a date, time and geographic position, confirm the calculation
+           configuration, and select <strong>Calculate</strong>. Every value shown
+           is produced by the Narayana calculation core via Swiss Ephemeris.</p>
+      </div>
+    </div>
+
+    <div class="state" id="state-loading" hidden>
+      <div class="state-inner">
+        <div class="spinner" aria-hidden="true"></div>
+        <h2>Calculating</h2>
+        <p>Resolving civil time to Julian Day and querying the ephemeris…</p>
+      </div>
+    </div>
+
+    <div class="state" id="state-error" hidden>
+      <div class="state-inner">
+        <div class="state-rule state-rule-error"></div>
+        <h2>Calculation Could Not Be Completed</h2>
+        <p id="error-message"></p>
+        <button type="button" class="btn-quiet" id="retry-btn">Dismiss</button>
+      </div>
+    </div>
+
+    <div id="state-success" hidden>
+
+      <div class="result-head">
+        <div>
+          <h2 class="result-title" id="result-place">Birth Chart</h2>
+          <p class="result-sub" id="result-when"></p>
+        </div>
+        <dl class="result-config" id="result-config"></dl>
+      </div>
+
+      <section class="block">
+        <h3 class="block-title">Lagna &amp; Panchanga</h3>
+        <div class="summary-grid" id="summary-grid"></div>
+      </section>
+
+      <section class="block">
+        <h3 class="block-title">Graha Positions</h3>
+        <div class="table-wrap">
+          <table class="data-table" id="graha-table">
+            <thead>
+              <tr>
+                <th scope="col">Graha</th>
+                <th scope="col" class="num">Longitude</th>
+                <th scope="col">Rashi</th>
+                <th scope="col" class="num">In Rashi</th>
+                <th scope="col">Nakshatra</th>
+                <th scope="col" class="num">Pada</th>
+                <th scope="col" class="num">Bhava</th>
+                <th scope="col">Dignity</th>
+                <th scope="col">Motion</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="block">
+        <h3 class="block-title">Bhavas <span class="block-sub" id="bhava-sub"></span></h3>
+        <div class="table-wrap">
+          <table class="data-table" id="bhava-table">
+            <thead>
+              <tr>
+                <th scope="col" class="num">Bhava</th>
+                <th scope="col" class="num">Cusp</th>
+                <th scope="col">Rashi</th>
+                <th scope="col">Rashi Lord</th>
+                <th scope="col">Occupants</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <p class="provenance" id="provenance"></p>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <span>Narayana · deterministic calculation · Swiss Ephemeris</span>
+  <span id="footer-version"></span>
+</footer>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
