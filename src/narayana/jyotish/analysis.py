@@ -5,8 +5,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from .birth_chart import JyotishBirthChart
+from .dignity import Dignity, get_dignity, get_dignity_score
 from .graha import Graha
-from .rashi import RASHI_NAMES, get_rashi_name, get_rashi_number
+from .placement import GrahaPlacement
+from .rashi import (
+    RASHI_NAMES,
+    get_rashi_name,
+    get_rashi_number,
+)
 
 
 RASHI_LORDS: dict[str, Graha] = {
@@ -23,6 +29,42 @@ RASHI_LORDS: dict[str, Graha] = {
     "Kumbha": Graha.SHANI,
     "Meena": Graha.GURU,
 }
+
+
+@dataclass(frozen=True)
+class GrahaAnalysis:
+    """Consolidated analysis of one Graha placement."""
+
+    placement: GrahaPlacement
+    dignity: Dignity
+    dignity_score: int
+
+
+def analyze_graha(
+    placement: GrahaPlacement,
+) -> GrahaAnalysis:
+    """Analyze the dignity and strength of one Graha placement."""
+
+    if not isinstance(placement, GrahaPlacement):
+        raise TypeError(
+            "placement must be a GrahaPlacement"
+        )
+
+    dignity = get_dignity(
+        placement.graha,
+        placement.rashi_number,
+    )
+
+    dignity_score = get_dignity_score(
+        placement.graha,
+        placement.rashi_number,
+    )
+
+    return GrahaAnalysis(
+        placement=placement,
+        dignity=dignity,
+        dignity_score=dignity_score,
+    )
 
 
 @dataclass(frozen=True)
@@ -124,9 +166,11 @@ def calculate_chart_analysis(
     ascendant_rashi_number = get_rashi_number(
         chart.ascendant_longitude
     )
+
     ascendant_rashi_name = get_rashi_name(
         ascendant_rashi_number
     )
+
     ascendant_rashi_lord = get_rashi_lord(
         ascendant_rashi_number
     )
@@ -145,6 +189,7 @@ def calculate_chart_analysis(
         rashi_groups[placement.rashi_number].append(
             placement.graha
         )
+
         bhava_groups[placement.bhava_number].append(
             placement.graha
         )
