@@ -99,10 +99,16 @@
   var lonInput = document.getElementById("longitude");
   var tzInput = document.getElementById("timezone");
 
+  var RESOLVE_DEBOUNCE_MS = 600;
+  var GEO_INPUTS = [latInput, lonInput, tzInput];
+
   // The last values this app wrote into the geo fields, so deliberate manual
   // edits can be detected and never silently overwritten.
   var applied = null;
   var resolveInflight = null;
+  var debounceTimer = null;
+  // The place text that produced the values currently in the geo fields.
+  var resolvedForText = null;
 
   function hemisphere(value, positive, negative) {
     return Math.abs(value).toFixed(6) + "° " + (value >= 0 ? positive : negative);
@@ -143,6 +149,34 @@
     candidatesBox.hidden = true;
   }
 
+  /* Stale-data rule: coordinates produced by a previous resolution must never
+   * stay associated with a different place name. Values the user typed in
+   * themselves are their own deliberate input and are preserved, but they are
+   * explicitly flagged as no longer tied to the place text. */
+  function invalidateResolvedLocation() {
+    var hadManualValues = applied === null
+      ? (latInput.value !== "" || lonInput.value !== "" || tzInput.value !== "")
+      : isOverridden();
+
+    if (applied !== null && !hadManualValues) {
+      GEO_INPUTS.forEach(function (input) { input.value = ""; });
+    }
+
+    applied = null;
+    resolvedForText = null;
+    clearCandidates();
+
+    if (hadManualValues) {
+      setStatus("", "Coordinates entered manually", [
+        el("span", "resolve-coords",
+          "These values are not linked to the place name. Select a resolved " +
+          "location to replace them.")
+      ]);
+    } else {
+      statusBox.hidden = true;
+    }
+  }
+
   function applyLocation(candidate) {
     latInput.value = String(candidate.latitude);
     lonInput.value = String(candidate.longitude);
@@ -155,8 +189,9 @@
       longitude: lonInput.value,
       timezone: tzInput.value
     };
+    resolvedForText = candidate.label;
 
-    [latInput, lonInput, tzInput].forEach(function (input) {
+    GEO_INPUTS.forEach(function (input) {
       input.classList.remove("invalid");
       input.removeAttribute("aria-invalid");
       document.getElementById("err-" + input.id).textContent = "";
@@ -198,19 +233,26 @@
   }
 
   function resolvePlace() {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+
     var query = placeInput.value.trim();
     document.getElementById("err-place_name").textContent = "";
     clearCandidates();
 
     if (!query) {
       statusBox.hidden = true;
-      setError("place_name", "Enter a place name to resolve, or fill the fields manually.");
       return;
     }
     placeInput.classList.remove("invalid");
 
+    // Never let an older, slower response populate fields for newer text.
     if (resolveInflight) resolveInflight.abort();
     resolveInflight = new AbortController();
+    var requestFor = query;
+
     resolveBtn.disabled = true;
     setStatus("is-busy", "Resolving location…", []);
 
@@ -223,12 +265,15 @@
         });
       })
       .then(function (data) {
+        // Discard a response the user has already typed past.
+        if (placeInput.value.trim() !== requestFor) return;
+
         var results = data.results || [];
         if (!results.length) {
           setStatus("is-error", "No match", [
             el("span", "resolve-coords",
-              "No matching location found. Please enter a more specific place, " +
-              "or enter latitude, longitude and timezone manually.")
+              "No matching location found; enter a more specific location " +
+              "or enter coordinates manually.")
           ]);
           return;
         }
@@ -240,6 +285,7 @@
       })
       .catch(function (err) {
         if (err.name === "AbortError") return;
+        if (placeInput.value.trim() !== requestFor) return;
         setStatus("is-error", "Location service", [
           el("span", "resolve-coords",
             err instanceof TypeError
@@ -253,9 +299,34 @@
       });
   }
 
+  /* Typing a new place immediately invalidates the old coordinates, then
+   * schedules a resolution once the user pauses. */
+  function handlePlaceInput() {
+    if (placeInput.value.trim() === resolvedForText) return;
+
+    invalidateResolvedLocation();
+
+    if (resolveInflight) {
+      resolveInflight.abort();
+      resolveInflight = null;
+    }
+    if (debounceTimer) clearTimeout(debounceTimer);
+
+    if (!placeInput.value.trim()) {
+      statusBox.hidden = true;
+      return;
+    }
+
+    debounceTimer = setTimeout(function () {
+      debounceTimer = null;
+      resolvePlace();
+    }, RESOLVE_DEBOUNCE_MS);
+  }
+
+  placeInput.addEventListener("input", handlePlaceInput);
   resolveBtn.addEventListener("click", resolvePlace);
 
-  // Enter inside the place field resolves rather than submitting the form.
+  // Enter inside the place field resolves immediately rather than submitting.
   placeInput.addEventListener("keydown", function (event) {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -263,7 +334,7 @@
     }
   });
 
-  [latInput, lonInput, tzInput].forEach(function (input) {
+  GEO_INPUTS.forEach(function (input) {
     input.addEventListener("input", refreshOverrideNotice);
   });
 
@@ -546,6 +617,9 @@
     clearCandidates();
     statusBox.hidden = true;
     applied = null;
+    resolvedForText = null;
+    if (debounceTimer) { clearTimeout(debounceTimer); debounceTimer = null; }
+    if (resolveInflight) { resolveInflight.abort(); resolveInflight = null; }
     loadOptions();
     show("empty");
   });
