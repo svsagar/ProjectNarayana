@@ -56,7 +56,11 @@ def observations() -> dict:
 def test_server_serves_the_current_workspace_assets(route, filename):
     response = client.get(route)
     assert response.status_code == 200
-    assert response.text == (WEB_DIR / filename).read_text(encoding="utf-8")
+    assert response.text.replace("\r\n", "\n") == (
+        (WEB_DIR / filename)
+        .read_text(encoding="utf-8")
+        .replace("\r\n", "\n")
+    )
 
 
 def test_place_field_is_wired_for_automatic_resolution():

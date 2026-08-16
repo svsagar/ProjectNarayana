@@ -207,9 +207,18 @@
     ]);
   }
 
+  function candidateRegion(candidate) {
+    var region = (candidate.admin2 || "").trim();
+    if (!region) return "";
+    if (!/district$/i.test(region)) region += " district";
+    return region;
+  }
+
   function candidateMeta(candidate) {
     var bits = [];
-    if (candidate.admin2 && candidate.admin2 !== candidate.name) bits.push(candidate.admin2);
+    var region = candidateRegion(candidate);
+
+    if (region) bits.push(region);
     bits.push(hemisphere(candidate.latitude, "N", "S"));
     bits.push(hemisphere(candidate.longitude, "E", "W"));
     bits.push(candidate.timezone);
