@@ -16,6 +16,7 @@ Run with:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import date as _date, time as _time
 from pathlib import Path
 from typing import Any
@@ -316,26 +317,89 @@ def _normalise_candidate(raw: Any) -> dict[str, Any] | None:
     return candidate
 
 
-def search_locations(query: str, count: int = GEOCODING_DEFAULT_COUNT) -> list[dict[str, Any]]:
-    """Resolve a place name into normalised location candidates.
+# Well-established Indian city aliases. Deliberately small and explicit: each
+# entry is a former official name still in everyday use. The provider indexes
+# the modern name, so the alias is translated before the request is made.
+INDIAN_CITY_ALIASES: dict[str, str] = {
+    "cochin": "Kochi",
+    "trivandrum": "Thiruvananthapuram",
+    "bangalore": "Bengaluru",
+    "bombay": "Mumbai",
+    "calcutta": "Kolkata",
+    "madras": "Chennai",
+    "poona": "Pune",
+    "mysore": "Mysuru",
+    "baroda": "Vadodara",
+    "pondicherry": "Puducherry",
+    "gurgaon": "Gurugram",
+}
 
-    Raises:
-        ValueError: the query is empty.
-        LocationServiceError: the provider is unreachable, returned an error
-            status, or returned a payload that cannot be interpreted.
+# Bare city names that should prefer the Indian result when the user gives no
+# country context. This is the set of alias targets plus the alias keys -- it
+# is not a general "assume India" rule.
+INDIA_PREFERRED_NAMES: frozenset[str] = frozenset(
+    list(INDIAN_CITY_ALIASES)
+    + [value.lower() for value in INDIAN_CITY_ALIASES.values()]
+)
+
+# Relative usefulness of Open-Meteo feature codes, when supplied.
+_FEATURE_RANK = {"PPLC": 4, "PPLA": 3, "PPLA2": 2, "PPLA3": 2, "PPLA4": 2, "PPL": 1}
+
+
+@dataclass(frozen=True)
+class _QueryPlan:
+    """How a raw query should be sent to the provider and ranked."""
+
+    text: str
+    head: str            # the place part, before any comma
+    qualifiers: tuple[str, ...]   # explicit country/region context
+    canonical: str       # alias-resolved name to query the provider with
+    prefer_india: bool
+
+
+def _fold(value: Any) -> str:
+    return str(value or "").strip().lower()
+
+
+def _plan_query(text: str) -> _QueryPlan:
+    """Decide whether an India preference applies, and what to ask for.
+
+    An explicit qualifier ("London, Canada") always wins: the user has stated
+    their intent and no India bias is applied.
     """
-    text = (query or "").strip()
-    if not text:
-        raise ValueError("A place name is required.")
+    parts = [part.strip() for part in text.split(",")]
+    head = parts[0]
+    qualifiers = tuple(part for part in parts[1:] if part)
 
-    count = max(1, min(int(count), GEOCODING_MAX_COUNT))
+    alias_target = INDIAN_CITY_ALIASES.get(_fold(head))
+    canonical = alias_target or head
+
+    prefer_india = (
+        not qualifiers
+        and _fold(head) in INDIA_PREFERRED_NAMES
+    )
+    return _QueryPlan(
+        text=text,
+        head=head,
+        qualifiers=qualifiers,
+        canonical=canonical,
+        prefer_india=prefer_india,
+    )
+
+
+def _fetch_candidates(
+    name: str,
+    count: int,
+    country_code: str | None = None,
+) -> list[dict[str, Any]]:
+    """One provider call, returning raw usable entries in provider order."""
+    params: dict[str, Any] = {"name": name, "count": count, "format": "json"}
+    if country_code:
+        params["countryCode"] = country_code
 
     try:
         with _geocoding_client() as client:
-            response = client.get(
-                GEOCODING_URL,
-                params={"name": text, "count": count, "format": "json"},
-            )
+            response = client.get(GEOCODING_URL, params=params)
     except httpx.HTTPError as exc:
         raise LocationServiceError(f"Geocoding request failed: {exc}") from exc
 
@@ -359,18 +423,129 @@ def search_locations(query: str, count: int = GEOCODING_DEFAULT_COUNT) -> list[d
     if not isinstance(raw_results, list):
         raise LocationServiceError("Unexpected geocoding response structure.")
 
-    candidates = [
-        normalised
-        for normalised in (_normalise_candidate(item) for item in raw_results)
-        if normalised is not None
-    ]
+    usable = [item for item in raw_results
+              if isinstance(item, dict) and _normalise_candidate(item) is not None]
 
     # The provider claimed matches but none were usable: treat as malformed
     # rather than silently reporting "no results".
-    if raw_results and not candidates:
+    if raw_results and not usable:
         raise LocationServiceError("Geocoding response contained no usable location data.")
 
-    return candidates
+    return usable
+
+
+def _ranking_key(raw: dict[str, Any], plan: _QueryPlan, order: int) -> tuple:
+    """Deterministic ranking signals, most significant first.
+
+    Signals are all documented provider fields; provider order is the final
+    tie-breaker. Geographic proximity is deliberately not used.
+    """
+    name = _fold(raw.get("name"))
+    country = _fold(raw.get("country"))
+    country_code = _fold(raw.get("country_code"))
+    admin1 = _fold(raw.get("admin1"))
+    admin2 = _fold(raw.get("admin2"))
+
+    # 1. Explicit qualifier match ("London, Canada" / "Kochi, Japan").
+    qualifier_score = 0
+    for qualifier in plan.qualifiers:
+        folded = _fold(qualifier)
+        if folded in {country, country_code, admin1, admin2}:
+            qualifier_score = max(qualifier_score, 2)
+        elif folded and any(folded in field for field in (country, admin1, admin2)):
+            qualifier_score = max(qualifier_score, 1)
+
+    # 2. India preference for a bare, strongly Indian city name.
+    india_score = 1 if plan.prefer_india and country_code == "in" else 0
+
+    # 3. Name / alias match against the canonical (alias-resolved) name.
+    target = _fold(plan.canonical)
+    if name == target:
+        name_score = 3
+    elif name.startswith(target) or target.startswith(name):
+        name_score = 2
+    elif target and target in name:
+        name_score = 1
+    else:
+        name_score = 0
+
+    # 4/5. Provider-supplied feature type and population, when present.
+    feature_score = _FEATURE_RANK.get(str(raw.get("feature_code") or ""), 0)
+    population = raw.get("population")
+    population_score = int(population) if isinstance(population, int) else 0
+
+    return (
+        qualifier_score,
+        india_score,
+        name_score,
+        feature_score,
+        population_score,
+        -order,          # provider order as the final tie-breaker
+    )
+
+
+def search_locations(query: str, count: int = GEOCODING_DEFAULT_COUNT) -> list[dict[str, Any]]:
+    """Resolve a place name into normalised location candidates.
+
+    Ambiguous bare names that strongly match a well-known Indian city prefer
+    the Indian result, while international candidates are retained so the user
+    can still choose. An explicit country/region qualifier disables the
+    preference entirely.
+
+    Raises:
+        ValueError: the query is empty.
+        LocationServiceError: the provider is unreachable, returned an error
+            status, or returned a payload that cannot be interpreted.
+    """
+    text = (query or "").strip()
+    if not text:
+        raise ValueError("A place name is required.")
+
+    count = max(1, min(int(count), GEOCODING_MAX_COUNT))
+    plan = _plan_query(text)
+
+    collected: list[dict[str, Any]] = []
+
+    # Stage A: for a strongly Indian bare name, ask the provider for the
+    # Indian candidates explicitly, using the canonical (alias-resolved) name.
+    if plan.prefer_india:
+        try:
+            collected.extend(
+                _fetch_candidates(plan.canonical, count, country_code="IN")
+            )
+        except LocationServiceError:
+            pass    # the unrestricted search below still applies
+
+    # Stage B: the unrestricted search, preserving global capability. Queried
+    # by the place part only, so "London, Canada" still reaches the provider.
+    general_error: LocationServiceError | None = None
+    try:
+        collected.extend(_fetch_candidates(plan.head, count))
+    except LocationServiceError as exc:
+        general_error = exc
+
+    if general_error is not None and not collected:
+        raise general_error
+
+    # Deduplicate by position; the first occurrence keeps its provider order.
+    seen: set[tuple[float, float]] = set()
+    unique: list[tuple[int, dict[str, Any]]] = []
+    for index, raw in enumerate(collected):
+        key = (round(float(raw["latitude"]), 4), round(float(raw["longitude"]), 4))
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append((index, raw))
+
+    ranked = sorted(unique, key=lambda pair: _ranking_key(pair[1], plan, pair[0]),
+                    reverse=True)
+
+    results = []
+    for _order, raw in ranked[:count]:
+        normalised = _normalise_candidate(raw)
+        if normalised is not None:
+            results.append(normalised)
+    return results
 
 
 @app.get("/api/v1/location/search")
