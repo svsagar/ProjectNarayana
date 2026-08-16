@@ -21,8 +21,9 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfoNotFoundError
 
+import httpx
 import swisseph as swe
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -50,6 +51,14 @@ VERSION_FILE = Path(__file__).resolve().parents[3] / "VERSION.txt"
 
 # The zodiac vocabulary enforced by SwissEphemerisBackend.
 SUPPORTED_ZODIACS = ("sidereal", "tropical")
+
+# Open-Meteo geocoding provider. Used only to resolve a place name into
+# coordinates and an IANA timezone for the birth input; it takes no part in
+# any astronomical or Jyotish calculation.
+GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search"
+GEOCODING_TIMEOUT_SECONDS = 8.0
+GEOCODING_DEFAULT_COUNT = 5
+GEOCODING_MAX_COUNT = 10
 
 # Weekday labels for the Vara integer (isoweekday: Monday = 1).
 # Calendar formatting only -- the value itself comes from the core.
@@ -237,6 +246,153 @@ def health() -> dict[str, Any]:
         "version": app.version,
         "ephemeris_version": SwissEphemerisBackend().version,
     }
+
+
+# --------------------------------------------------------------------------
+# Location resolution
+#
+# Resolves a free-text place into coordinates and an IANA timezone so the user
+# does not have to type them. It only produces *inputs* for BirthInput; it is
+# never consulted during calculation.
+# --------------------------------------------------------------------------
+
+class LocationServiceError(RuntimeError):
+    """The geocoding provider could not be reached or returned nonsense."""
+
+
+def _geocoding_client() -> httpx.Client:
+    """Client factory. Tests replace this to inject a mock transport."""
+    return httpx.Client(timeout=GEOCODING_TIMEOUT_SECONDS)
+
+
+def _build_label(candidate: dict[str, Any]) -> str:
+    """Human-readable, auditable location label."""
+    parts = [
+        candidate.get("name"),
+        candidate.get("admin1"),
+        candidate.get("country"),
+    ]
+    seen: list[str] = []
+    for part in parts:
+        if part and part not in seen:
+            seen.append(str(part))
+    return ", ".join(seen)
+
+
+def _normalise_candidate(raw: Any) -> dict[str, Any] | None:
+    """Keep only the fields the interface needs; reject unusable entries."""
+    if not isinstance(raw, dict):
+        return None
+
+    name = raw.get("name")
+    latitude = raw.get("latitude")
+    longitude = raw.get("longitude")
+    timezone = raw.get("timezone")
+
+    if not isinstance(name, str) or not name.strip():
+        return None
+    if isinstance(latitude, bool) or not isinstance(latitude, (int, float)):
+        return None
+    if isinstance(longitude, bool) or not isinstance(longitude, (int, float)):
+        return None
+    if not isinstance(timezone, str) or not timezone.strip():
+        return None
+    if not (-90.0 <= float(latitude) <= 90.0):
+        return None
+    if not (-180.0 <= float(longitude) <= 180.0):
+        return None
+
+    candidate = {
+        "name": name.strip(),
+        "latitude": float(latitude),
+        "longitude": float(longitude),
+        "timezone": timezone.strip(),
+        "country": raw.get("country"),
+        "country_code": raw.get("country_code"),
+        "admin1": raw.get("admin1"),
+        "admin2": raw.get("admin2"),
+    }
+    candidate["label"] = _build_label(candidate)
+    return candidate
+
+
+def search_locations(query: str, count: int = GEOCODING_DEFAULT_COUNT) -> list[dict[str, Any]]:
+    """Resolve a place name into normalised location candidates.
+
+    Raises:
+        ValueError: the query is empty.
+        LocationServiceError: the provider is unreachable, returned an error
+            status, or returned a payload that cannot be interpreted.
+    """
+    text = (query or "").strip()
+    if not text:
+        raise ValueError("A place name is required.")
+
+    count = max(1, min(int(count), GEOCODING_MAX_COUNT))
+
+    try:
+        with _geocoding_client() as client:
+            response = client.get(
+                GEOCODING_URL,
+                params={"name": text, "count": count, "format": "json"},
+            )
+    except httpx.HTTPError as exc:
+        raise LocationServiceError(f"Geocoding request failed: {exc}") from exc
+
+    if response.status_code != 200:
+        raise LocationServiceError(
+            f"Geocoding provider returned HTTP {response.status_code}."
+        )
+
+    try:
+        payload = response.json()
+    except ValueError as exc:
+        raise LocationServiceError("Geocoding provider returned invalid JSON.") from exc
+
+    if not isinstance(payload, dict):
+        raise LocationServiceError("Unexpected geocoding response structure.")
+
+    # Open-Meteo omits "results" entirely when nothing matches.
+    raw_results = payload.get("results", [])
+    if raw_results is None:
+        raw_results = []
+    if not isinstance(raw_results, list):
+        raise LocationServiceError("Unexpected geocoding response structure.")
+
+    candidates = [
+        normalised
+        for normalised in (_normalise_candidate(item) for item in raw_results)
+        if normalised is not None
+    ]
+
+    # The provider claimed matches but none were usable: treat as malformed
+    # rather than silently reporting "no results".
+    if raw_results and not candidates:
+        raise LocationServiceError("Geocoding response contained no usable location data.")
+
+    return candidates
+
+
+@app.get("/api/v1/location/search")
+def location_search(
+    q: str = Query(..., min_length=1, description="Free-text place name."),
+    count: int = Query(GEOCODING_DEFAULT_COUNT, ge=1, le=GEOCODING_MAX_COUNT),
+) -> dict[str, Any]:
+    """Resolve a place name into candidate coordinates and timezone."""
+    try:
+        results = search_locations(q, count)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except LocationServiceError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "Location service unavailable. You may enter latitude, "
+                "longitude and timezone manually."
+            ),
+        ) from exc
+
+    return {"query": q.strip(), "results": results}
 
 
 @app.get("/api/v1/config/options")

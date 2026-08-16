@@ -43,37 +43,38 @@
       </div>
 
       <div class="field">
-        <label for="place_name">Birth Place <span class="hint">label only</span></label>
-        <input type="text" id="place_name" name="place_name" placeholder="Kochi, Kerala, India" autocomplete="off" />
+        <label for="place_name">Birth Place</label>
+        <div class="resolve-row">
+          <input type="text" id="place_name" name="place_name" placeholder="Kottayam" autocomplete="off" />
+          <button type="button" class="btn-resolve" id="resolve-btn">Find</button>
+        </div>
+        <p class="field-hint">Resolves coordinates and timezone automatically. You can also fill them in manually below.</p>
         <p class="field-error" id="err-place_name"></p>
+
+        <div class="resolve-status" id="resolve-status" hidden></div>
+
+        <div class="candidates" id="candidates" hidden>
+          <p class="candidates-title" id="candidates-title">Multiple matches — select the intended location:</p>
+          <div class="candidate-list" id="candidate-list" role="group" aria-label="Location candidates"></div>
+        </div>
       </div>
 
       <div class="field-row">
         <div class="field">
           <label for="latitude">Latitude <span class="hint">° N +</span></label>
-          <input type="number" id="latitude" name="latitude" step="0.000001" min="-90" max="90" placeholder="9.931200" required />
+          <input type="number" id="latitude" name="latitude" step="0.000001" min="-90" max="90" placeholder="—" required />
           <p class="field-error" id="err-latitude"></p>
         </div>
         <div class="field">
           <label for="longitude">Longitude <span class="hint">° E +</span></label>
-          <input type="number" id="longitude" name="longitude" step="0.000001" min="-180" max="180" placeholder="76.267300" required />
+          <input type="number" id="longitude" name="longitude" step="0.000001" min="-180" max="180" placeholder="—" required />
           <p class="field-error" id="err-longitude"></p>
         </div>
       </div>
 
       <div class="field">
         <label for="timezone">Timezone <span class="hint">IANA name</span></label>
-        <input type="text" id="timezone" name="timezone" list="tz-list" value="Asia/Kolkata" required />
-        <datalist id="tz-list">
-          <option value="Asia/Kolkata"></option>
-          <option value="Asia/Colombo"></option>
-          <option value="Asia/Kathmandu"></option>
-          <option value="Asia/Dubai"></option>
-          <option value="Asia/Singapore"></option>
-          <option value="Europe/London"></option>
-          <option value="America/New_York"></option>
-          <option value="UTC"></option>
-        </datalist>
+        <input type="text" id="timezone" name="timezone" placeholder="—" autocomplete="off" required />
         <p class="field-error" id="err-timezone"></p>
       </div>
 

@@ -50,12 +50,13 @@ approximates domain logic.
 
 ## 4. Endpoints
 
-| Method | Path                     | Responsibility                                        |
-|--------|--------------------------|-------------------------------------------------------|
-| GET    | `/api/v1/health`         | Core version and Swiss Ephemeris version               |
-| GET    | `/api/v1/config/options` | Supported configuration vocabularies and defaults      |
-| POST   | `/api/v1/chart`          | Birth details → serialised `JyotishBirthChart`         |
-| GET    | `/`                      | Web interface                                          |
+| Method | Path                       | Responsibility                                      |
+|--------|----------------------------|-----------------------------------------------------|
+| GET    | `/api/v1/health`           | Core version and Swiss Ephemeris version             |
+| GET    | `/api/v1/config/options`   | Supported configuration vocabularies and defaults    |
+| GET    | `/api/v1/location/search`  | Resolve a place name into coordinates and timezone   |
+| POST   | `/api/v1/chart`            | Birth details → serialised `JyotishBirthChart`       |
+| GET    | `/`                        | Web interface                                        |
 
 ### 4.1 Configuration options
 
@@ -79,7 +80,63 @@ alternatives until the Astronomy Engine implements them (see D-014).
 
 ---
 
-## 5. Error Contract
+## 5. Location Resolution
+
+`GET /api/v1/location/search?q=<place>&count=<1..10>` resolves free-text place
+input into coordinates and an IANA timezone, so the user is not required to
+type latitude and longitude by hand.
+
+The provider is the Open-Meteo Geocoding API
+(`https://geocoding-api.open-meteo.com/v1/search`). It is called **server
+side**; the browser never contacts it directly.
+
+### 5.1 Boundary
+
+Location resolution produces *inputs* for `BirthInput`. It participates in no
+astronomical or Jyotish calculation, and `POST /api/v1/chart` never invokes it.
+The calculation always uses the values present in the submitted request.
+
+### 5.2 Normalisation
+
+Each provider entry is reduced to `name`, `latitude`, `longitude`, `timezone`,
+`country`, `country_code`, `admin1`, `admin2` and a composed `label`.
+
+An entry is discarded unless it carries a non-empty name, a numeric latitude in
+[-90, 90], a numeric longitude in [-180, 180], and a non-empty timezone.
+Coordinates are never inferred, defaulted, or rounded.
+
+### 5.3 Ambiguity
+
+A single usable candidate may populate the form directly. Two or more
+candidates must be presented for explicit user selection; the interface must
+not choose on the user's behalf. Candidates are shown with their coordinates
+and timezone so that visually identical place names remain distinguishable.
+
+### 5.4 Auditability and override
+
+The resolved location is displayed, not merely written into fields. Latitude,
+longitude and timezone remain editable; a deliberate manual edit after
+resolution is retained and never silently overwritten. Only an explicit
+re-resolution replaces the values.
+
+### 5.5 Error contract
+
+| Condition                                     | Status | Behaviour                                   |
+|-----------------------------------------------|--------|---------------------------------------------|
+| Blank query                                    | 422    | Rejected before any provider call            |
+| No match                                       | 200    | `{"results": []}` — an empty result, not an error |
+| Network failure, timeout, non-200 upstream     | 503    | Advises manual entry of coordinates          |
+| Invalid JSON or unusable payload structure     | 503    | Advises manual entry of coordinates          |
+
+When the provider reports matches but none survive validation, the response is
+a 503 rather than a misleading "no results".
+
+Tests mock the provider with `httpx.MockTransport` and never depend on live
+Open-Meteo availability.
+
+---
+
+## 6. Error Contract
 
 | Condition                                   | Status | Source                          |
 |---------------------------------------------|--------|---------------------------------|
@@ -93,7 +150,7 @@ exceptions are translated into HTTP status codes.
 
 ---
 
-## 6. Serialisation Notes
+## 7. Serialisation Notes
 
 The interface adds presentation-only fields alongside core values:
 
@@ -110,14 +167,14 @@ compares the HTTP response against a direct call to the application API.
 
 ---
 
-## 7. Out of Scope
+## 8. Out of Scope
 
 Dashas, yogas, predictions, compatibility, reports, transits, chart graphics,
-geocoding, and persistence remain out of scope for this layer.
+and persistence remain out of scope for this layer.
 
 ---
 
-## 8. Running
+## 9. Running
 
 ```bash
 pip install -r requirements.txt

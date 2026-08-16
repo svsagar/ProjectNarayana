@@ -115,6 +115,61 @@ select:disabled { color: var(--ink-soft); cursor: not-allowed; background: #F2EE
 
 .field-error { margin: 4px 0 0; font-size: 12px; color: var(--accent); }
 .field-error:empty { display: none; }
+.field-hint { margin: 5px 0 0; font-size: 11.5px; color: var(--ink-faint); }
+
+/* ---------------- Location resolution ---------------- */
+
+.resolve-row { display: flex; gap: 8px; }
+.resolve-row input { flex: 1; min-width: 0; }
+.btn-resolve {
+  flex: 0 0 auto; padding: 9px 14px; font-size: 12px; letter-spacing: .08em;
+  text-transform: uppercase; font-weight: 600; color: var(--indigo);
+  background: var(--paper); border: 1px solid var(--rule-strong);
+  border-radius: 3px; cursor: pointer; transition: border-color .12s ease;
+}
+.btn-resolve:hover:not(:disabled) { border-color: var(--indigo); background: #F1F4F7; }
+.btn-resolve:disabled { opacity: .5; cursor: progress; }
+
+.resolve-status {
+  margin-top: 10px; padding: 10px 12px; border-radius: 3px;
+  border: 1px solid var(--rule-strong); background: var(--paper); font-size: 12.5px;
+}
+.resolve-status.is-resolved { border-color: #B9CFBF; background: #EFF6F1; }
+.resolve-status.is-error { border-color: #E0BDB2; background: var(--accent-soft); }
+.resolve-status.is-busy { color: var(--ink-soft); }
+.resolve-head {
+  display: block; font-weight: 600; letter-spacing: .04em;
+  text-transform: uppercase; font-size: 10.5px; margin-bottom: 4px;
+}
+.is-resolved .resolve-head { color: var(--ok); }
+.is-error .resolve-head { color: var(--accent); }
+.resolve-place { display: block; font-family: var(--serif); font-size: 14px; font-weight: 600; }
+.resolve-coords { display: block; font-family: var(--mono); font-size: 11.5px; color: var(--ink-soft); margin-top: 2px; }
+.resolve-override {
+  display: block; margin-top: 6px; padding-top: 6px; font-size: 11.5px;
+  color: var(--gold); border-top: 1px solid var(--rule);
+}
+
+.candidates { margin-top: 10px; }
+.candidates-title {
+  margin: 0 0 6px; font-size: 11px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+}
+.candidate-list { display: flex; flex-direction: column; gap: 6px; }
+.candidate {
+  text-align: left; padding: 9px 12px; border: 1px solid var(--rule-strong);
+  border-radius: 3px; background: var(--paper-raised); cursor: pointer;
+  font-family: var(--sans); font-size: 13px; color: var(--ink);
+  transition: border-color .12s ease, background .12s ease;
+}
+.candidate:hover, .candidate:focus {
+  border-color: var(--indigo); background: #F7F9FB; outline: none;
+}
+.candidate-name { display: block; font-weight: 600; }
+.candidate-meta {
+  display: block; font-family: var(--mono); font-size: 11px;
+  color: var(--ink-faint); margin-top: 2px;
+}
 
 .actions {
   display: flex; gap: 10px; align-items: center;

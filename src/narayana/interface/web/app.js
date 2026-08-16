@@ -84,8 +84,190 @@
       });
   }
 
-  /* ---------------- validation ---------------- */
+  /* ---------------- location resolution ----------------
+   * Resolves a place into coordinates + timezone via the backend endpoint,
+   * which proxies Open-Meteo. Nothing is guessed here: fields are only
+   * populated from values the resolver actually returned.
+   */
 
+  var resolveBtn = document.getElementById("resolve-btn");
+  var statusBox = document.getElementById("resolve-status");
+  var candidatesBox = document.getElementById("candidates");
+  var candidateList = document.getElementById("candidate-list");
+  var placeInput = document.getElementById("place_name");
+  var latInput = document.getElementById("latitude");
+  var lonInput = document.getElementById("longitude");
+  var tzInput = document.getElementById("timezone");
+
+  // The last values this app wrote into the geo fields, so deliberate manual
+  // edits can be detected and never silently overwritten.
+  var applied = null;
+  var resolveInflight = null;
+
+  function hemisphere(value, positive, negative) {
+    return Math.abs(value).toFixed(6) + "° " + (value >= 0 ? positive : negative);
+  }
+
+  function isOverridden() {
+    if (!applied) return false;
+    return latInput.value !== applied.latitude ||
+           lonInput.value !== applied.longitude ||
+           tzInput.value !== applied.timezone;
+  }
+
+  function setStatus(kind, headline, nodes) {
+    statusBox.className = "resolve-status " + kind;
+    statusBox.innerHTML = "";
+    statusBox.appendChild(el("span", "resolve-head", headline));
+    (nodes || []).forEach(function (node) { statusBox.appendChild(node); });
+    statusBox.hidden = false;
+  }
+
+  function refreshOverrideNotice() {
+    if (!applied || statusBox.hidden) return;
+    var existing = statusBox.querySelector(".resolve-override");
+    if (isOverridden()) {
+      if (!existing) {
+        statusBox.appendChild(el(
+          "span", "resolve-override",
+          "Manually adjusted — the calculation will use the values in the fields above."
+        ));
+      }
+    } else if (existing) {
+      existing.remove();
+    }
+  }
+
+  function clearCandidates() {
+    candidateList.innerHTML = "";
+    candidatesBox.hidden = true;
+  }
+
+  function applyLocation(candidate) {
+    latInput.value = String(candidate.latitude);
+    lonInput.value = String(candidate.longitude);
+    tzInput.value = candidate.timezone;
+    placeInput.value = candidate.label;
+
+    // Remember exactly what we wrote, to detect later manual edits.
+    applied = {
+      latitude: latInput.value,
+      longitude: lonInput.value,
+      timezone: tzInput.value
+    };
+
+    [latInput, lonInput, tzInput].forEach(function (input) {
+      input.classList.remove("invalid");
+      input.removeAttribute("aria-invalid");
+      document.getElementById("err-" + input.id).textContent = "";
+    });
+
+    clearCandidates();
+    setStatus("is-resolved", "\u2713 Location resolved", [
+      el("span", "resolve-place", candidate.label),
+      el("span", "resolve-coords",
+        hemisphere(candidate.latitude, "N", "S") + ", " +
+        hemisphere(candidate.longitude, "E", "W")),
+      el("span", "resolve-coords", candidate.timezone)
+    ]);
+  }
+
+  function candidateMeta(candidate) {
+    var bits = [];
+    if (candidate.admin2 && candidate.admin2 !== candidate.name) bits.push(candidate.admin2);
+    bits.push(hemisphere(candidate.latitude, "N", "S"));
+    bits.push(hemisphere(candidate.longitude, "E", "W"));
+    bits.push(candidate.timezone);
+    return bits.join(" · ");
+  }
+
+  function showCandidates(results) {
+    candidateList.innerHTML = "";
+    results.forEach(function (candidate) {
+      var button = el("button", "candidate");
+      button.type = "button";
+      button.appendChild(el("span", "candidate-name", candidate.label));
+      button.appendChild(el("span", "candidate-meta", candidateMeta(candidate)));
+      button.addEventListener("click", function () { applyLocation(candidate); });
+      candidateList.appendChild(button);
+    });
+    candidatesBox.hidden = false;
+    setStatus("", results.length + " possible locations found", [
+      el("span", "resolve-coords", "Select the intended location to fill the fields below.")
+    ]);
+  }
+
+  function resolvePlace() {
+    var query = placeInput.value.trim();
+    document.getElementById("err-place_name").textContent = "";
+    clearCandidates();
+
+    if (!query) {
+      statusBox.hidden = true;
+      setError("place_name", "Enter a place name to resolve, or fill the fields manually.");
+      return;
+    }
+    placeInput.classList.remove("invalid");
+
+    if (resolveInflight) resolveInflight.abort();
+    resolveInflight = new AbortController();
+    resolveBtn.disabled = true;
+    setStatus("is-busy", "Resolving location…", []);
+
+    fetch("/api/v1/location/search?q=" + encodeURIComponent(query) + "&count=5",
+          { signal: resolveInflight.signal })
+      .then(function (response) {
+        return response.json().catch(function () { return {}; }).then(function (data) {
+          if (!response.ok) throw new Error(describe(data.detail));
+          return data;
+        });
+      })
+      .then(function (data) {
+        var results = data.results || [];
+        if (!results.length) {
+          setStatus("is-error", "No match", [
+            el("span", "resolve-coords",
+              "No matching location found. Please enter a more specific place, " +
+              "or enter latitude, longitude and timezone manually.")
+          ]);
+          return;
+        }
+        if (results.length === 1) {
+          applyLocation(results[0]);
+          return;
+        }
+        showCandidates(results);
+      })
+      .catch(function (err) {
+        if (err.name === "AbortError") return;
+        setStatus("is-error", "Location service", [
+          el("span", "resolve-coords",
+            err instanceof TypeError
+              ? "Location service unavailable. You may enter latitude, longitude and timezone manually."
+              : err.message)
+        ]);
+      })
+      .finally(function () {
+        resolveBtn.disabled = false;
+        resolveInflight = null;
+      });
+  }
+
+  resolveBtn.addEventListener("click", resolvePlace);
+
+  // Enter inside the place field resolves rather than submitting the form.
+  placeInput.addEventListener("keydown", function (event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      resolvePlace();
+    }
+  });
+
+  [latInput, lonInput, tzInput].forEach(function (input) {
+    input.addEventListener("input", refreshOverrideNotice);
+  });
+
+  /* ---------------- validation ---------------- */
   function clearErrors() {
     FIELDS.forEach(function (name) {
       document.getElementById("err-" + name).textContent = "";
@@ -116,20 +298,20 @@
 
     var lat = parseFloat(value.latitude);
     if (value.latitude === "" || isNaN(lat)) {
-      setError("latitude", "Latitude is required."); errors++;
+      setError("latitude", "Latitude is required — resolve a place or enter it manually."); errors++;
     } else if (lat < -90 || lat > 90) {
       setError("latitude", "Must be between -90 and 90."); errors++;
     }
 
     var lon = parseFloat(value.longitude);
     if (value.longitude === "" || isNaN(lon)) {
-      setError("longitude", "Longitude is required."); errors++;
+      setError("longitude", "Longitude is required — resolve a place or enter it manually."); errors++;
     } else if (lon < -180 || lon > 180) {
       setError("longitude", "Must be between -180 and 180."); errors++;
     }
 
     if (!value.timezone) {
-      setError("timezone", "Timezone is required (e.g. Asia/Kolkata).");
+      setError("timezone", "Timezone is required — resolve a place or enter it manually.");
       errors++;
     } else if (value.timezone.indexOf("+") === 0 || value.timezone.indexOf("-") === 0) {
       setError("timezone", "Use an IANA name such as Asia/Kolkata, not a UTC offset.");
@@ -361,6 +543,9 @@
   document.getElementById("reset-btn").addEventListener("click", function () {
     form.reset();
     clearErrors();
+    clearCandidates();
+    statusBox.hidden = true;
+    applied = null;
     loadOptions();
     show("empty");
   });
